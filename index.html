@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Búsquedas</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Header con botón para toggle del menú -->
+    <header class="header">
+        <button class="menu-toggle" id="menuToggle">
+            <i class="fas fa-bars"></i>
+        </button>
+        <h1 class="header-title">Simulador de Búsquedas</h1>
+    </header>
+
+    <!-- Menú lateral izquierdo -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h2>Navegación</h2>
+        </div>
+        <ul class="sidebar-menu">
+            <li class="menu-item active">
+                <a href="#home">
+                    <i class="fas fa-home"></i>
+                    <span>Inicio</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="#internal-search" class="menu-link">
+                    <i class="fas fa-search"></i>
+                    <span>Búsquedas Internas</span>
+                    <i class="fas fa-chevron-down dropdown-arrow"></i>
+                </a>
+                <ul class="submenu">
+                    <li class="submenu-item has-submenu">
+                        <a href="#clasicas" class="submenu-link">
+                            <i class="fas fa-list-ol"></i>
+                            <span>Clásicas</span>
+                        </a>
+                        <ul class="submenu-level-2">
+                            <li class="submenu-level-2-item">
+                                <a href="#secuencial" class="submenu-level-2-link">
+                                    <i class="fas fa-arrow-right"></i>
+                                    <span>Secuencial</span>
+                                </a>
+                            </li>
+                            <li class="submenu-level-2-item">
+                                <a href="#binaria" class="submenu-level-2-link">
+                                    <i class="fas fa-cut"></i>
+                                    <span>Binaria</span>
+                                </a>
+                            </li>
+                            <li class="submenu-level-2-item">
+                                <a href="#hash" class="submenu-level-2-link">
+                                    <i class="fas fa-hashtag"></i>
+                                    <span>Funciones Hash</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="submenu-item has-submenu">
+                        <a href="#arboles" class="submenu-link">
+                            <i class="fas fa-sitemap"></i>
+                            <span>Árboles</span>
+                        </a>
+                        <ul class="submenu-level-2">
+                            <li class="submenu-level-2-item">
+                                <a href="#residuos" class="submenu-level-2-link">
+                                    <i class="fas fa-calculator"></i>
+                                    <span>Residuos</span>
+                                </a>
+                            </li>
+                            <li class="submenu-level-2-item">
+                                <a href="#digitales" class="submenu-level-2-link">
+                                    <i class="fas fa-binary"></i>
+                                    <span>Digitales</span>
+                                </a>
+                            </li>
+                            <li class="submenu-level-2-item">
+                                <a href="#trie" class="submenu-level-2-link">
+                                    <i class="fas fa-project-diagram"></i>
+                                    <span>Residuos Trie</span>
+                                </a>
+                            </li>
+                            <li class="submenu-level-2-item">
+                                <a href="#multiples" class="submenu-level-2-link">
+                                    <i class="fas fa-layer-group"></i>
+                                    <span>Residuos Múltiples</span>
+                                </a>
+                            </li>
+                            <li class="submenu-level-2-item">
+                                <a href="#huffman" class="submenu-level-2-link">
+                                    <i class="fas fa-code-branch"></i>
+                                    <span>Huffman</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+            <li class="menu-item">
+                <a href="#external-search">
+                    <i class="fas fa-globe"></i>
+                    <span>Búsquedas Externas</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="#information">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Información</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Contenido principal -->
+    <main class="main-content" id="mainContent">
+        <!-- Sección de bienvenida -->
+        <section class="welcome-section">
+            <div class="welcome-container">
+                <div class="welcome-header">
+                    <i class="fas fa-search welcome-icon"></i>
+                    <h1>¡Bienvenido al Simulador de Búsquedas!</h1>
+                </div>
+                
+                <div class="welcome-content">
+                    <p class="welcome-subtitle">
+                        Simulador de búsquedas para la clase de Florez
+                    </p>
+                    
+                    <div class="welcome-description">
+                        <p>
+                            Este simulador está diseñado para practicar y mejorar las técnicas de búsqueda 
+                            tanto internas como externas de manera eficiente y organizada. Aquí podrás:
+                        </p>
+                        
+                        <div class="features-grid">
+                            <div class="feature-card">
+                                <i class="fas fa-search"></i>
+                                <h3>Búsquedas Internas</h3>
+                                <p>Simula búsquedas dentro de bases de datos locales y sistemas internos.</p>
+                            </div>
+                            
+                            <div class="feature-card">
+                                <i class="fas fa-globe"></i>
+                                <h3>Búsquedas Externas</h3>
+                                <p>Practica búsquedas en recursos externos y bases de datos públicas.</p>
+                            </div>
+                            
+                            <div class="feature-card">
+                                <i class="fas fa-info-circle"></i>
+                                <h3>Información</h3>
+                                <p>Consulta guías, documentación y recursos del simulador.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección de Búsquedas Internas -->
+        <section class="internal-search-section hidden" id="internalSearchSection">
+            <div class="section-container">
+                <div class="section-header">
+                    <i class="fas fa-search section-icon"></i>
+                    <h1>Búsquedas Internas</h1>
+                    <p class="section-subtitle">
+                        Explora diferentes algoritmos de búsqueda para estructuras de datos internas
+                    </p>
+                </div>
+
+                <!-- Subsección: Clásicas -->
+                <div class="subsection">
+                    <div class="subsection-header">
+                        <h2>
+                            <i class="fas fa-list-ol"></i>
+                            Búsquedas Clásicas
+                        </h2>
+                        <p>Algoritmos fundamentales de búsqueda en estructuras lineales</p>
+                    </div>
+                    
+                    <div class="search-methods-grid">
+                        <div class="search-method-card" data-method="secuencial">
+                            <div class="method-icon">
+                                <i class="fas fa-arrow-right"></i>
+                            </div>
+                            <h3>Búsqueda Secuencial</h3>
+                            <p>Examina cada elemento de la estructura uno por uno hasta encontrar el objetivo.</p>
+                            <div class="method-complexity">
+                                <span class="complexity-label">Complejidad:</span>
+                                <span class="complexity-value">O(n)</span>
+                            </div>
+                            <button class="method-btn">Simular</button>
+                        </div>
+
+                        <div class="search-method-card" data-method="binaria">
+                            <div class="method-icon">
+                                <i class="fas fa-cut"></i>
+                            </div>
+                            <h3>Búsqueda Binaria</h3>
+                            <p>Divide el espacio de búsqueda por la mitad en cada iteración (requiere orden).</p>
+                            <div class="method-complexity">
+                                <span class="complexity-label">Complejidad:</span>
+                                <span class="complexity-value">O(log n)</span>
+                            </div>
+                            <button class="method-btn">Simular</button>
+                        </div>
+
+                        <div class="search-method-card" data-method="hash">
+                            <div class="method-icon">
+                                <i class="fas fa-hashtag"></i>
+                            </div>
+                            <h3>Funciones Hash</h3>
+                            <p>Utiliza una función de hash para mapear claves a posiciones específicas.</p>
+                            <div class="method-complexity">
+                                <span class="complexity-label">Complejidad:</span>
+                                <span class="complexity-value">O(1) promedio</span>
+                            </div>
+                            <button class="method-btn">Simular</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Subsección: Árboles -->
+                <div class="subsection">
+                    <div class="subsection-header">
+                        <h2>
+                            <i class="fas fa-sitemap"></i>
+                            Búsquedas en Árboles
+                        </h2>
+                        <p>Algoritmos especializados para estructuras de árbol y métodos avanzados</p>
+                    </div>
+                    
+                    <div class="search-methods-grid">
+                        <div class="search-method-card" data-method="residuos">
+                            <div class="method-icon">
+                                <i class="fas fa-calculator"></i>
+                            </div>
+                            <h3>Residuos</h3>
+                            <p>Búsqueda basada en operaciones de módulo para distribución uniforme.</p>
+                            <div class="method-complexity">
+                                <span class="complexity-label">Complejidad:</span>
+                                <span class="complexity-value">O(1) - O(n)</span>
+                            </div>
+                            <button class="method-btn">Simular</button>
+                        </div>
+
+                        <div class="search-method-card" data-method="digitales">
+                            <div class="method-icon">
+                                <i class="fas fa-binary"></i>
+                            </div>
+                            <h3>Digitales</h3>
+                            <p>Búsqueda basada en la representación digital de las claves.</p>
+                            <div class="method-complexity">
+                                <span class="complexity-label">Complejidad:</span>
+                                <span class="complexity-value">O(k)</span>
+                            </div>
+                            <button class="method-btn">Simular</button>
+                        </div>
+
+                        <div class="search-method-card" data-method="trie">
+                            <div class="method-icon">
+                                <i class="fas fa-project-diagram"></i>
+                            </div>
+                            <h3>Residuos Trie</h3>
+                            <p>Estructura de árbol especializada para búsqueda de cadenas por prefijos.</p>
+                            <div class="method-complexity">
+                                <span class="complexity-label">Complejidad:</span>
+                                <span class="complexity-value">O(m)</span>
+                            </div>
+                            <button class="method-btn">Simular</button>
+                        </div>
+
+                        <div class="search-method-card" data-method="multiples">
+                            <div class="method-icon">
+                                <i class="fas fa-layer-group"></i>
+                            </div>
+                            <h3>Residuos Múltiples</h3>
+                            <p>Utiliza múltiples funciones de hash para reducir colisiones.</p>
+                            <div class="method-complexity">
+                                <span class="complexity-label">Complejidad:</span>
+                                <span class="complexity-value">O(1) - O(k)</span>
+                            </div>
+                            <button class="method-btn">Simular</button>
+                        </div>
+
+                        <div class="search-method-card" data-method="huffman">
+                            <div class="method-icon">
+                                <i class="fas fa-code-branch"></i>
+                            </div>
+                            <h3>Huffman</h3>
+                            <p>Algoritmo de codificación que crea árboles binarios óptimos para búsqueda.</p>
+                            <div class="method-complexity">
+                                <span class="complexity-label">Complejidad:</span>
+                                <span class="complexity-value">O(log n)</span>
+                            </div>
+                            <button class="method-btn">Simular</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botón de regreso -->
+                <div class="section-actions">
+                    <button class="btn btn-secondary back-btn" id="backToHome">
+                        <i class="fas fa-arrow-left"></i>
+                        Volver al Inicio
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Overlay para móviles -->
+    <div class="overlay" id="overlay"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
