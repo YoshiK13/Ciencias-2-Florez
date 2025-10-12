@@ -1,0 +1,315 @@
+/* Search Section Styles */
+.search-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px 0;
+}
+
+.section-container {
+  background: var(--light-bg);
+  border-radius: 15px;
+  padding: 40px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border-color);
+}
+
+.section-header {
+  text-align: center;
+  margin-bottom: 50px;
+  padding-bottom: 30px;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.section-icon {
+  font-size: 3.5rem;
+  color: var(--primary-color);
+  margin-bottom: 20px;
+  display: block;
+}
+
+.section-header h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 15px;
+}
+
+.section-subtitle {
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Subsecciones */
+.subsection {
+  margin-bottom: 50px;
+}
+
+.subsection:last-of-type {
+  margin-bottom: 30px;
+}
+
+.subsection-header {
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.subsection-header h2 {
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+}
+
+.subsection-header h2 .icon {
+  color: var(--primary-color);
+}
+
+.subsection-header p {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Grid de métodos de búsqueda */
+.search-methods-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 25px;
+  margin: 30px 0;
+}
+
+/* Tarjetas de métodos de búsqueda */
+.search-method-card {
+  background: #f8f9fa;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 30px 25px;
+  text-align: center;
+  transition: var(--transition);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.search-method-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+  transform: scaleX(0);
+  transition: var(--transition);
+}
+
+.search-method-card:hover::before {
+  transform: scaleX(1);
+}
+
+.search-method-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+  background: var(--light-bg);
+  border-color: var(--primary-color);
+}
+
+.method-icon {
+  width: 70px;
+  height: 70px;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  transition: var(--transition);
+}
+
+.search-method-card:hover .method-icon {
+  transform: rotate(360deg) scale(1.1);
+}
+
+.method-icon svg {
+  font-size: 1.8rem;
+  color: white;
+}
+
+.search-method-card h3 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 15px;
+}
+
+.search-method-card p {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 20px;
+  font-size: 0.95rem;
+}
+
+/* Complejidad */
+.method-complexity {
+  background: #e3f2fd;
+  border-radius: 8px;
+  padding: 10px 15px;
+  margin: 20px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.complexity-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.complexity-value {
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--primary-color);
+  background: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--primary-color);
+}
+
+/* Botón de método */
+.method-btn {
+  background: linear-gradient(135deg, var(--primary-color), #2980b9);
+  color: white;
+  border: none;
+  padding: 12px 25px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  width: 100%;
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.method-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(52, 152, 219, 0.3);
+  background: linear-gradient(135deg, #2980b9, var(--secondary-color));
+}
+
+.method-btn:active {
+  transform: translateY(0);
+}
+
+.method-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Acciones de sección */
+.section-actions {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 40px;
+  padding-top: 30px;
+  border-top: 1px solid var(--border-color);
+}
+
+.back-btn {
+  background: var(--light-bg);
+  color: var(--text-primary);
+  border: 2px solid var(--border-color);
+  padding: 12px 25px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.back-btn:hover {
+  background: #f8f9fa;
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+/* Estados especiales */
+.search-method-card.selected {
+  background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+  border-color: var(--primary-color);
+  transform: translateY(-5px) scale(1.02);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .section-container {
+    padding: 30px 20px;
+  }
+  
+  .section-header h1 {
+    font-size: 2rem;
+  }
+  
+  .section-icon {
+    font-size: 2.5rem;
+  }
+  
+  .subsection-header h2 {
+    font-size: 1.6rem;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .search-methods-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .search-method-card {
+    padding: 25px 20px;
+  }
+  
+  .method-icon {
+    width: 60px;
+    height: 60px;
+  }
+}
+
+@media (max-width: 480px) {
+  .section-header {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+  }
+  
+  .section-header h1 {
+    font-size: 1.8rem;
+  }
+  
+  .section-subtitle {
+    font-size: 1rem;
+  }
+  
+  .subsection {
+    margin-bottom: 40px;
+  }
+  
+  .subsection-header h2 {
+    font-size: 1.4rem;
+  }
+}
