@@ -13,11 +13,11 @@ import {
 } from 'lucide-react';
 import '../styles/SequentialSearchSection.css';
 
-function SequentialSearchSection({ onNavigate }) {
+function BinarySearchSection({ onNavigate }) {
   // Estados para la configuración
   const [structureSize, setStructureSize] = useState(20);
   const [keySize, setKeySize] = useState(4);
-  const [collisionMethod, setCollisionMethod] = useState('secuencial');
+  const [collisionMethod, setCollisionMethod] = useState('binaria');
   const [isStructureCreated, setIsStructureCreated] = useState(false);
   
   // Estados para las operaciones
@@ -67,10 +67,10 @@ function SequentialSearchSection({ onNavigate }) {
 
   // Interceptar intentos de navegación del componente padre
   React.useEffect(() => {
-    window.sequentialSearchCheckUnsavedChanges = checkForUnsavedChanges;
+    window.binarySearchCheckUnsavedChanges = checkForUnsavedChanges;
     
     return () => {
-      delete window.sequentialSearchCheckUnsavedChanges;
+      delete window.binarySearchCheckUnsavedChanges;
     };
   }, [checkForUnsavedChanges]);
 
@@ -117,10 +117,10 @@ function SequentialSearchSection({ onNavigate }) {
   // Función para crear el objeto de datos para guardar
   const createSaveData = () => {
     return {
-      fileType: 'SBF', // Sequential Binary File
+      fileType: 'BBF', // Binary Binary File
       version: '1.0',
-      sectionType: 'sequential-search',
-      sectionName: 'Búsqueda Secuencial',
+      sectionType: 'binary-search',
+      sectionName: 'Búsqueda Binaria',
       timestamp: new Date().toISOString(),
       configuration: {
         structureSize: structureSize,
@@ -133,7 +133,7 @@ function SequentialSearchSection({ onNavigate }) {
       },
       metadata: {
         elementsCount: memoryArray.length,
-        description: `Estructura de búsqueda secuencial con ${memoryArray.length} elementos`
+        description: `Estructura de búsqueda binaria con ${memoryArray.length} elementos`
       }
     };
   };
@@ -146,8 +146,8 @@ function SequentialSearchSection({ onNavigate }) {
     }
 
     const defaultName = currentFileName 
-      ? currentFileName.replace('.sbf', '')
-      : `busqueda-secuencial-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}`;
+      ? currentFileName.replace('.bbf', '')
+      : `busqueda-binaria-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}`;
 
     const dataToSave = createSaveData();
     const jsonString = JSON.stringify(dataToSave, null, 2);
@@ -156,11 +156,11 @@ function SequentialSearchSection({ onNavigate }) {
       // Intentar usar la File System Access API moderna si está disponible
       if ('showSaveFilePicker' in window) {
         const fileHandle = await window.showSaveFilePicker({
-          suggestedName: `${defaultName}.sbf`,
+          suggestedName: `${defaultName}.bbf`,
           types: [{
-            description: 'Archivos de Búsqueda Secuencial',
+            description: 'Archivos de Búsqueda Binaria',
             accept: {
-              'application/json': ['.sbf']
+              'application/json': ['.bbf']
             }
           }]
         });
@@ -179,7 +179,7 @@ function SequentialSearchSection({ onNavigate }) {
           return; // Usuario canceló
         }
 
-        const finalFileName = fileName.endsWith('.sbf') ? fileName : `${fileName}.sbf`;
+        const finalFileName = fileName.endsWith('.bbf') ? fileName : `${fileName}.bbf`;
         const blob = new Blob([jsonString], { type: 'application/json' });
         
         // Crear enlace de descarga
@@ -217,9 +217,9 @@ function SequentialSearchSection({ onNavigate }) {
         if ('showOpenFilePicker' in window) {
           const [fileHandle] = await window.showOpenFilePicker({
             types: [{
-              description: 'Archivos de Búsqueda Secuencial',
+              description: 'Archivos de Búsqueda Binaria',
               accept: {
-                'application/json': ['.sbf']
+                'application/json': ['.bbf']
               }
             }],
             multiple: false
@@ -232,7 +232,7 @@ function SequentialSearchSection({ onNavigate }) {
           // Fallback para navegadores que no soportan File System Access API
           const input = document.createElement('input');
           input.type = 'file';
-          input.accept = '.sbf';
+          input.accept = '.bbf';
           
           await new Promise((resolve) => {
             input.onchange = (e) => {
@@ -253,9 +253,9 @@ function SequentialSearchSection({ onNavigate }) {
           });
         }
 
-        if (!file || !fileName.endsWith('.sbf')) {
+        if (!file || !fileName.endsWith('.bbf')) {
           if (file) {
-            showMessage('Por favor seleccione un archivo .sbf válido', 'error');
+            showMessage('Por favor seleccione un archivo .bbf válido', 'error');
           }
           return;
         }
@@ -264,12 +264,12 @@ function SequentialSearchSection({ onNavigate }) {
         const loadedData = JSON.parse(content);
         
         // Validar formato del archivo
-        if (!loadedData.fileType || loadedData.fileType !== 'SBF') {
-          showMessage('Archivo no válido: no es un archivo SBF', 'error');
+        if (!loadedData.fileType || loadedData.fileType !== 'BBF') {
+          showMessage('Archivo no válido: no es un archivo BBF', 'error');
           return;
         }
 
-        if (!loadedData.sectionType || loadedData.sectionType !== 'sequential-search') {
+        if (!loadedData.sectionType || loadedData.sectionType !== 'binary-search') {
           showMessage('Este archivo pertenece a otra sección del simulador', 'error');
           return;
         }
@@ -446,7 +446,7 @@ function SequentialSearchSection({ onNavigate }) {
     // Guardar estado anterior para el historial
     const previousState = [...memoryArray];
     
-    // Insertar y ordenar numéricamente
+    // Insertar y ordenar numéricamente (importante para búsqueda binaria)
     const newArray = [...memoryArray, formattedKey].sort((a, b) => parseInt(a) - parseInt(b));
     setMemoryArray(newArray);
     updateStructureVisualization(newArray);
@@ -459,7 +459,7 @@ function SequentialSearchSection({ onNavigate }) {
       newState: newArray
     });
 
-    showMessage(`Clave "${formattedKey}" insertada correctamente en la posición ${newArray.indexOf(formattedKey) + 1}`, 'success');
+    showMessage(`Clave "${formattedKey}" insertada correctamente en la posición ${newArray.indexOf(formattedKey) + 1} (manteniendo orden)`, 'success');
     setInsertKey('');
     markAsChanged();
   };
@@ -484,39 +484,63 @@ function SequentialSearchSection({ onNavigate }) {
     let found = false;
     let position = -1;
 
-    // Simular búsqueda secuencial paso a paso
-    for (let i = 0; i < memoryArray.length; i++) {
+    // Algoritmo de búsqueda binaria paso a paso
+    let left = 0;
+    let right = memoryArray.length - 1;
+    
+    while (left <= right && !found) {
       steps++;
+      const mid = Math.floor((left + right) / 2);
+      const midValue = memoryArray[mid];
       
-      // Destacar posición actual
-      const highlightedStructure = structureData.map((item, index) => ({
-        ...item,
-        isHighlighted: index === i && item.value !== null
-      }));
+      // Destacar rango actual de búsqueda
+      const highlightedStructure = structureData.map((item) => {
+        let isHighlighted = false;
+        if (item.value !== null) {
+          const valueIndex = memoryArray.indexOf(item.value);
+          if (valueIndex >= left && valueIndex <= right) {
+            isHighlighted = true;
+          }
+          // Destacar especialmente el elemento medio
+          if (valueIndex === mid) {
+            item.highlightType = 'mid';
+            isHighlighted = true;
+          }
+        }
+        return {
+          ...item,
+          isHighlighted: isHighlighted
+        };
+      });
       setStructureData(highlightedStructure);
 
       // Pausa para visualización
       await new Promise(resolve => setTimeout(resolve, 1000 / simulationSpeed));
 
-      if (memoryArray[i] === formattedKey) {
+      if (midValue === formattedKey) {
         found = true;
-        position = i + 1;
+        position = mid + 1;
         break;
+      } else if (parseInt(midValue) < parseInt(formattedKey)) {
+        left = mid + 1;
+      } else {
+        right = mid - 1;
       }
     }
 
     // Quitar destacado
     const finalStructure = structureData.map(item => ({
       ...item,
-      isHighlighted: false
+      isHighlighted: false,
+      highlightType: undefined
     }));
     setStructureData(finalStructure);
 
     // Mostrar resultado
     if (found) {
-      showMessage(`Clave "${formattedKey}" encontrada en la posición ${position} después de ${steps} pasos`, 'success');
+      showMessage(`Clave "${formattedKey}" encontrada en la posición ${position} después de ${steps} comparaciones`, 'success');
     } else {
-      showMessage(`Clave "${formattedKey}" no se encuentra en la estructura después de ${steps} pasos`, 'error');
+      showMessage(`Clave "${formattedKey}" no se encuentra en la estructura después de ${steps} comparaciones`, 'error');
     }
 
     setIsSimulating(false);
@@ -636,7 +660,7 @@ function SequentialSearchSection({ onNavigate }) {
             return (
               <React.Fragment key={currentIndex}>
                 {/* Fila actual */}
-                <div className={`table-row ${item.isHighlighted ? 'highlighted' : ''}`}>
+                <div className={`table-row ${item.isHighlighted ? 'highlighted' : ''} ${item.highlightType === 'mid' ? 'mid-highlight' : ''}`}>
                   <span className="row-number">{item.position}</span>
                   <span className={`cell-memory ${!item.value ? 'empty' : ''}`}>
                     {item.value || '—'}
@@ -661,7 +685,7 @@ function SequentialSearchSection({ onNavigate }) {
   return (
     <div className="sequential-search-section">
       <div className="section-header">
-        <h1>Búsqueda Secuencial</h1>
+        <h1>Búsqueda Binaria</h1>
       </div>
 
       {/* Sección de Archivo */}
@@ -679,7 +703,7 @@ function SequentialSearchSection({ onNavigate }) {
           <button 
             className="action-btn"
             onClick={handleLoad}
-            title="Cargar estructura desde archivo .sbf"
+            title="Cargar estructura desde archivo .bbf"
           >
             <FolderOpen size={18} />
             <span>Abrir</span>
@@ -744,8 +768,9 @@ function SequentialSearchSection({ onNavigate }) {
               onChange={(e) => setCollisionMethod(e.target.value)}
               className="config-select"
               disabled
-              title="Deshabilitado en búsqueda secuencial (no hay colisiones)"
+              title="Deshabilitado en búsqueda binaria (no hay colisiones)"
             >
+              <option value="binaria">Búsqueda Binaria</option>
               <option value="secuencial">Secuencial</option>
               <option value="potencia2">Potencia 2</option>
               <option value="hashmod">Hash MOD</option>
@@ -923,7 +948,7 @@ function SequentialSearchSection({ onNavigate }) {
           ) : (
             <div className="canvas-content">
               <div className="simulation-info">
-                <p><strong>Estructura:</strong> Tamaño {structureSize}</p>
+                <p><strong>Estructura:</strong> Tamaño {structureSize} (Ordenada)</p>
                 <p><strong>Tipo de Clave:</strong> Numérica de {keySize} dígitos</p>
                 <p><strong>Elementos:</strong> {memoryArray.length}/{structureSize}</p>
               </div>
@@ -940,4 +965,4 @@ function SequentialSearchSection({ onNavigate }) {
   );
 }
 
-export default SequentialSearchSection;
+export default BinarySearchSection;

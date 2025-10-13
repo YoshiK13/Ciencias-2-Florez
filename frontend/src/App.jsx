@@ -7,6 +7,7 @@ import InternalSearchSection from './components/InternalSearchSection';
 import ClassicSearchSection from './components/ClassicSearchSection';
 import TreeSearchSection from './components/TreeSearchSection';
 import SequentialSearchSection from './components/SequentialSearchSection';
+import BinarySearchSection from './components/BinarySearchSection';
 import InformationSection from './components/InformationSection';
 import { useResponsive } from './hooks/useResponsive';
 import { useSearch } from './hooks/useSearch';
@@ -16,7 +17,7 @@ function App() {
   const [currentSection, setCurrentSection] = useState('home');
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const { isMobile } = useResponsive();
-  const { simulateSearch, generateTestData } = useSearch();
+  const { generateTestData } = useSearch();
 
   // Ajustar visibilidad del sidebar según el dispositivo
   useEffect(() => {
@@ -29,8 +30,15 @@ function App() {
 
   const handleNavigate = (section) => {
     // Verificar si hay cambios no guardados en búsqueda secuencial
-    if (currentSection === 'sequential-search' && window.sequentialSearchCheckUnsavedChanges) {
+    if (currentSection === 'secuencial' && window.sequentialSearchCheckUnsavedChanges) {
       window.sequentialSearchCheckUnsavedChanges(section, () => {
+        setCurrentSection(section);
+        console.log('Navegando a:', section);
+      });
+    } 
+    // Verificar si hay cambios no guardados en búsqueda binaria
+    else if (currentSection === 'binaria' && window.binarySearchCheckUnsavedChanges) {
+      window.binarySearchCheckUnsavedChanges(section, () => {
         setCurrentSection(section);
         console.log('Navegando a:', section);
       });
@@ -84,24 +92,26 @@ function App() {
         return (
           <ClassicSearchSection 
             onNavigate={handleNavigate}
-            onSimulate={handleSimulate}
           />
         );
       case 'arboles':
         return (
           <TreeSearchSection 
             onNavigate={handleNavigate}
-            onSimulate={handleSimulate}
           />
         );
       case 'secuencial':
         return (
           <SequentialSearchSection 
             onNavigate={handleNavigate}
-            onSimulate={handleSimulate}
           />
         );
       case 'binaria':
+        return (
+          <BinarySearchSection 
+            onNavigate={handleNavigate}
+          />
+        );
       case 'hash':
       case 'residuos':
       case 'digitales':
@@ -110,18 +120,16 @@ function App() {
       case 'huffman':
         // Aquí podríamos mostrar páginas específicas para cada algoritmo
         // Por ahora redirigimos a la sección correspondiente
-        if (['binaria', 'hash'].includes(currentSection)) {
+        if (currentSection === 'hash') {
           return (
             <ClassicSearchSection 
               onNavigate={handleNavigate}
-              onSimulate={handleSimulate}
             />
           );
         } else {
           return (
             <TreeSearchSection 
               onNavigate={handleNavigate}
-              onSimulate={handleSimulate}
             />
           );
         }
