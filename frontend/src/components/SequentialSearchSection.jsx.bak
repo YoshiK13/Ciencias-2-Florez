@@ -48,31 +48,28 @@ function SequentialSearchSection({ onNavigate, onSimulate }) {
   const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
 
-  // Sistema mejorado de navegación sin bloqueo
-  const checkForUnsavedChanges = React.useCallback((targetSection, callback) => {
-    if (hasUnsavedChanges && !showUnsavedWarning) {
+  // Función para manejar navegación con verificación de cambios
+  const handleNavigation = React.useCallback((targetSection) => {
+    if (hasUnsavedChanges) {
       setPendingAction({ 
-        execute: callback || (() => onNavigate && onNavigate(targetSection)), 
+        execute: () => onNavigate && onNavigate(targetSection), 
         description: `navegar a ${targetSection}` 
       });
       setShowUnsavedWarning(true);
-    } else if (!hasUnsavedChanges) {
-      if (callback) {
-        callback();
-      } else if (onNavigate) {
-        onNavigate(targetSection);
-      }
+      return false; // Bloquear navegación
     }
-  }, [hasUnsavedChanges, onNavigate, showUnsavedWarning]);
-
-  // Interceptar intentos de navegación del componente padre
-  React.useEffect(() => {
-    window.sequentialSearchCheckUnsavedChanges = checkForUnsavedChanges;
     
-    return () => {
-      delete window.sequentialSearchCheckUnsavedChanges;
-    };
-  }, [checkForUnsavedChanges]);
+    onNavigate && onNavigate(targetSection);
+    return true; // Permitir navegación
+  }, [hasUnsavedChanges, onNavigate]);
+
+  // Exponer función de verificación al componente padre
+  React.useEffect(() => {
+    if (onNavigate && typeof onNavigate === 'function') {
+      // Reemplazar la función de navegación original con nuestra versión que verifica cambios
+      window.checkUnsavedChangesBeforeNavigation = handleNavigation;
+    }
+  }, [handleNavigation, onNavigate]);
 
   // Función para verificar cambios no guardados antes de salir
   React.useEffect(() => {
@@ -138,175 +135,102 @@ function SequentialSearchSection({ onNavigate, onSimulate }) {
     };
   };
 
-  // Función para guardar archivo con selector de ubicación
-  const handleSave = async () => {
+  // Función para guardar archivo
+  const handleSave = () => {
     if (!isStructureCreated) {
       showMessage('No hay estructura para guardar', 'error');
       return;
     }
 
-    const defaultName = currentFileName 
-      ? currentFileName.replace('.sbf', '')
-      : `busqueda-secuencial-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}`;
-
     const dataToSave = createSaveData();
     const jsonString = JSON.stringify(dataToSave, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    
+    // Crear nombre de archivo con timestamp si no hay nombre actual
+    const fileName = currentFileName || `busqueda-secuencial-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.sbf`;
+    
+    // Crear enlace de descarga
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 
-    try {
-      // Intentar usar la File System Access API moderna si está disponible
-      if ('showSaveFilePicker' in window) {
-        const fileHandle = await window.showSaveFilePicker({
-          suggestedName: `${defaultName}.sbf`,
-          types: [{
-            description: 'Archivos de Búsqueda Secuencial',
-            accept: {
-              'application/json': ['.sbf']
-            }
-          }]
-        });
-
-        const writable = await fileHandle.createWritable();
-        await writable.write(jsonString);
-        await writable.close();
-
-        setHasUnsavedChanges(false);
-        setCurrentFileName(fileHandle.name);
-        showMessage(`Archivo guardado como: ${fileHandle.name}`, 'success');
-      } else {
-        // Fallback para navegadores que no soportan File System Access API
-        const fileName = prompt('Ingrese el nombre del archivo:', defaultName);
-        if (!fileName) {
-          return; // Usuario canceló
-        }
-
-        const finalFileName = fileName.endsWith('.sbf') ? fileName : `${fileName}.sbf`;
-        const blob = new Blob([jsonString], { type: 'application/json' });
-        
-        // Crear enlace de descarga
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = finalFileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-
-        setHasUnsavedChanges(false);
-        setCurrentFileName(finalFileName);
-        showMessage(`Archivo guardado como: ${finalFileName}`, 'success');
-      }
-    } catch (error) {
-      if (error.name !== 'AbortError') {
-        showMessage('Error al guardar el archivo', 'error');
-        console.error('Error saving file:', error);
-      }
-    }
+    // Marcar como guardado
+    setHasUnsavedChanges(false);
+    setCurrentFileName(fileName);
+    showMessage(`Archivo guardado como: ${fileName}`, 'success');
   };
 
-  // Función para cargar archivo con selector mejorado
-  const handleLoad = async () => {
+  // Función para cargar archivo
+  const handleLoad = () => {
     // Función que ejecuta la carga real
-    const executeLoad = async () => {
-      try {
-        let file = null;
-        let fileName = '';
-        let content = '';
+    const executeLoad = () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.sbf';
+      input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
 
-        // Intentar usar la File System Access API moderna si está disponible
-        if ('showOpenFilePicker' in window) {
-          const [fileHandle] = await window.showOpenFilePicker({
-            types: [{
-              description: 'Archivos de Búsqueda Secuencial',
-              accept: {
-                'application/json': ['.sbf']
-              }
-            }],
-            multiple: false
-          });
-          
-          file = await fileHandle.getFile();
-          fileName = file.name;
-          content = await file.text();
-        } else {
-          // Fallback para navegadores que no soportan File System Access API
-          const input = document.createElement('input');
-          input.type = 'file';
-          input.accept = '.sbf';
-          
-          await new Promise((resolve) => {
-            input.onchange = (e) => {
-              file = e.target.files[0];
-              if (file) {
-                fileName = file.name;
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                  content = e.target.result;
-                  resolve();
-                };
-                reader.readAsText(file);
-              } else {
-                resolve();
-              }
-            };
-            input.click();
-          });
+        if (!file.name.endsWith('.sbf')) {
+          showMessage('Por favor seleccione un archivo .sbf válido', 'error');
+          return;
         }
 
-        if (!file || !fileName.endsWith('.sbf')) {
-          if (file) {
-            showMessage('Por favor seleccione un archivo .sbf válido', 'error');
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const loadedData = JSON.parse(e.target.result);
+            
+            // Validar formato del archivo
+            if (!loadedData.fileType || loadedData.fileType !== 'SBF') {
+              showMessage('Archivo no válido: no es un archivo SBF', 'error');
+              return;
+            }
+
+            if (!loadedData.sectionType || loadedData.sectionType !== 'sequential-search') {
+              showMessage('Este archivo pertenece a otra sección del simulador', 'error');
+              return;
+            }
+
+            // Cargar configuración
+            setStructureSize(loadedData.configuration.structureSize);
+            setKeySize(loadedData.configuration.keySize);
+            setCollisionMethod(loadedData.configuration.collisionMethod);
+            
+            // Cargar datos
+            setMemoryArray(loadedData.data.memoryArray || []);
+            setIsStructureCreated(loadedData.data.isStructureCreated || false);
+            
+            // Actualizar visualización
+            if (loadedData.data.isStructureCreated) {
+              const newStructure = Array(loadedData.configuration.structureSize).fill(null).map((_, index) => ({
+                position: index + 1,
+                value: loadedData.data.memoryArray[index] || null,
+                isHighlighted: false
+              }));
+              setStructureData(newStructure);
+            }
+
+            // Limpiar historial y estados
+            setHistory([]);
+            setHistoryIndex(-1);
+            setHasUnsavedChanges(false);
+            setCurrentFileName(file.name);
+            
+            showMessage(`Archivo cargado exitosamente: ${file.name}`, 'success');
+            
+          } catch {
+            showMessage('Error al cargar el archivo: formato inválido', 'error');
           }
-          return;
-        }
-
-        // Procesar el contenido del archivo
-        const loadedData = JSON.parse(content);
-        
-        // Validar formato del archivo
-        if (!loadedData.fileType || loadedData.fileType !== 'SBF') {
-          showMessage('Archivo no válido: no es un archivo SBF', 'error');
-          return;
-        }
-
-        if (!loadedData.sectionType || loadedData.sectionType !== 'sequential-search') {
-          showMessage('Este archivo pertenece a otra sección del simulador', 'error');
-          return;
-        }
-
-        // Cargar configuración
-        setStructureSize(loadedData.configuration.structureSize);
-        setKeySize(loadedData.configuration.keySize);
-        setCollisionMethod(loadedData.configuration.collisionMethod);
-        
-        // Cargar datos
-        setMemoryArray(loadedData.data.memoryArray || []);
-        setIsStructureCreated(loadedData.data.isStructureCreated || false);
-        
-        // Actualizar visualización
-        if (loadedData.data.isStructureCreated) {
-          const newStructure = Array(loadedData.configuration.structureSize).fill(null).map((_, index) => ({
-            position: index + 1,
-            value: loadedData.data.memoryArray[index] || null,
-            isHighlighted: false
-          }));
-          setStructureData(newStructure);
-        }
-
-        // Limpiar historial y estados
-        setHistory([]);
-        setHistoryIndex(-1);
-        setHasUnsavedChanges(false);
-        setCurrentFileName(fileName);
-        
-        showMessage(`Archivo cargado exitosamente: ${fileName}`, 'success');
-        
-      } catch (error) {
-        if (error.name !== 'AbortError') {
-          showMessage('Error al cargar el archivo: ' + (error.message || 'formato inválido'), 'error');
-          console.error('Error loading file:', error);
-        }
-      }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
     };
 
     // Verificar cambios no guardados
@@ -320,42 +244,28 @@ function SequentialSearchSection({ onNavigate, onSimulate }) {
     executeLoad();
   };
 
-  // Función mejorada para confirmar pérdida de progreso
-  const confirmUnsavedChanges = async (action) => {
-    const currentPendingAction = pendingAction;
-    
-    // Cerrar el modal
+  // Función para confirmar pérdida de progreso
+  const confirmUnsavedChanges = (action) => {
     setShowUnsavedWarning(false);
-    setPendingAction(null);
     
-    try {
-      if (action === 'cancel') {
-        // Solo cerrar el modal, no hacer nada más
-        return;
-        
-      } else if (action === 'continue' && currentPendingAction) {
-        // Continuar sin guardar - limpiar cambios y ejecutar acción
-        setHasUnsavedChanges(false);
-        
-        // Ejecutar la acción pendiente
-        if (currentPendingAction.execute) {
-          currentPendingAction.execute();
+    if (action === 'continue' && pendingAction) {
+      // Marcar como no guardado y ejecutar la acción
+      setHasUnsavedChanges(false);
+      pendingAction.execute();
+      setPendingAction(null);
+    } else if (action === 'save' && pendingAction) {
+      // Guardar primero y luego ejecutar la acción
+      handleSave();
+      // Esperar un poco para que el guardado se complete
+      setTimeout(() => {
+        if (pendingAction) {
+          pendingAction.execute();
+          setPendingAction(null);
         }
-        
-      } else if (action === 'save' && currentPendingAction) {
-        // Guardar primero, luego continuar
-        await handleSave();
-        
-        // Ejecutar la acción después de un breve delay
-        setTimeout(() => {
-          if (currentPendingAction.execute) {
-            currentPendingAction.execute();
-          }
-        }, 100);
-      }
-    } catch (error) {
-      console.error('Error en confirmUnsavedChanges:', error);
-      showMessage('Error al procesar la acción', 'error');
+      }, 200);
+    } else if (action === 'cancel') {
+      // Solo cancelar
+      setPendingAction(null);
     }
   };
 

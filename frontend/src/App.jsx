@@ -28,8 +28,16 @@ function App() {
   };
 
   const handleNavigate = (section) => {
-    setCurrentSection(section);
-    console.log('Navegando a:', section);
+    // Verificar si hay cambios no guardados en búsqueda secuencial
+    if (currentSection === 'sequential-search' && window.sequentialSearchCheckUnsavedChanges) {
+      window.sequentialSearchCheckUnsavedChanges(section, () => {
+        setCurrentSection(section);
+        console.log('Navegando a:', section);
+      });
+    } else {
+      setCurrentSection(section);
+      console.log('Navegando a:', section);
+    }
   };
 
   const handleCloseSidebar = () => {

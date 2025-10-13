@@ -49,10 +49,29 @@
   transition: all 0.2s;
 }
 
-.action-btn:hover {
+.action-btn:hover:not(:disabled) {
   background: #e2e8f0;
   border-color: #94a3b8;
   color: #334155;
+}
+
+.action-btn:disabled {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+/* Indicador de cambios no guardados */
+.action-btn.unsaved-changes {
+  border-color: #f59e0b;
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.action-btn.unsaved-changes:hover:not(:disabled) {
+  background: #fde68a;
+  border-color: #f59e0b;
 }
 
 /* Sección de Configuración - REHECHA DESDE CERO */
@@ -119,6 +138,13 @@
   outline: none;
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.config-select:disabled {
+  background: #f9fafb;
+  color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 /* Texto de ayuda - altura fija para alineación consistente */
@@ -348,6 +374,169 @@
   transform: none;
 }
 
+/* Área de Mensajes Informativos */
+.message-area {
+  background: white;
+  border-radius: 12px;
+  padding: 16px 24px;
+  margin-bottom: 18px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid;
+  animation: slideIn 0.3s ease-out;
+}
+
+.message-area.success {
+  border-left-color: #10b981;
+  background: linear-gradient(to right, #ecfdf5, white);
+}
+
+.message-area.error {
+  border-left-color: #ef4444;
+  background: linear-gradient(to right, #fef2f2, white);
+}
+
+.message-area.info {
+  border-left-color: #3b82f6;
+  background: linear-gradient(to right, #eff6ff, white);
+}
+
+.message-area p {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes highlight {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 0 0 10px rgba(251, 191, 36, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0);
+  }
+}
+
+/* Modal para advertencias */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease-out;
+}
+
+.modal-content h3 {
+  margin: 0 0 16px 0;
+  font-size: 1.2rem;
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-content p {
+  margin: 8px 0;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  justify-content: flex-end;
+}
+
+.modal-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modal-btn.cancel {
+  background: #6b7280;
+  color: white;
+}
+
+.modal-btn.cancel:hover {
+  background: #4b5563;
+}
+
+.modal-btn.save {
+  background: #10b981;
+  color: white;
+}
+
+.modal-btn.save:hover {
+  background: #059669;
+}
+
+.modal-btn.continue {
+  background: #dc2626;
+  color: white;
+}
+
+.modal-btn.continue:hover {
+  background: #b91c1c;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Área de Simulación */
 .simulation-canvas {
   background: white;
@@ -456,6 +645,18 @@
   border-bottom: none;
 }
 
+.table-row.highlighted {
+  background: #fef3c7;
+  animation: highlight 0.5s ease-in-out;
+}
+
+.table-row.highlighted .cell-memory {
+  background: #fbbf24;
+  border-color: #f59e0b;
+  color: white;
+  font-weight: 600;
+}
+
 .row-number {
   position: absolute;
   left: 16px;
@@ -480,6 +681,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* Estilo para celdas vacías */
+.cell-memory.empty {
+  color: #9ca3af;
+  font-style: italic;
+  background: #f9fafb;
+  border-style: dashed;
+}
+
+.table-row.highlighted .cell-memory.empty {
+  background: #fbbf24;
+  color: white;
+  border-style: solid;
+  font-style: normal;
 }
 
 /* Fila de puntos suspensivos */
