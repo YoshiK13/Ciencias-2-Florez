@@ -403,34 +403,115 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 16px;
+  justify-content: flex-start;
+  padding: 20px;
+  overflow-y: auto;
 }
 
-.structure-placeholder {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: center;
-}
-
-.structure-cell {
-  width: 60px;
-  height: 60px;
-  border: 2px solid #d1d5db;
+/* Tabla de la estructura */
+.structure-table {
+  width: 100%;
+  max-width: 300px;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
+  overflow: hidden;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.table-header {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: white;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 12px;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.header-memory {
+  display: block;
+}
+
+.table-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.table-row {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.2s;
+  position: relative;
+}
+
+.table-row:hover:not(.ellipsis-row) {
+  background: #f8fafc;
+}
+
+.table-row:last-child {
+  border-bottom: none;
+}
+
+.row-number {
+  position: absolute;
+  left: 16px;
+  color: #6b7280;
+  font-size: 0.85rem;
+  font-weight: 500;
+  min-width: 24px;
+  text-align: left;
+}
+
+.cell-memory {
+  padding: 12px;
+  width: calc(100% - 60px);
+  text-align: center;
+  font-size: 0.9rem;
+  color: #1f2937;
+  font-family: 'Courier New', monospace;
+  border: 1px solid #e5e7eb;
+  background: white;
+  margin: 4px 16px 4px 44px;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f9fafb;
-  font-weight: 600;
-  color: #374151;
-  transition: all 0.2s;
 }
 
-.structure-cell:hover {
-  border-color: #3b82f6;
-  background: #eff6ff;
+/* Fila de puntos suspensivos */
+.ellipsis-row {
+  background: transparent;
+  opacity: 0.6;
+  height: 30px;
+}
+
+.ellipsis-row:hover {
+  background: transparent;
+}
+
+.ellipsis-row .row-number {
+  color: #9ca3af;
+  font-size: 1.2rem;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.ellipsis-row .cell-memory {
+  color: #9ca3af;
+  font-size: 1.2rem;
+  font-weight: bold;
+  background: transparent;
+  border: 2px dashed #d1d5db;
+  line-height: 1;
+  margin: 2px 16px 2px 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
 }
 
 /* Responsive */
