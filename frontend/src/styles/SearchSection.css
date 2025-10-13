@@ -198,7 +198,7 @@
 }
 
 .search-method-card:hover .method-icon {
-  transform: rotate(360deg) scale(1.1);
+  transform: scale(1.1);
 }
 
 .method-icon svg {

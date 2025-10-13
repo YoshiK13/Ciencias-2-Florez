@@ -6,19 +6,19 @@ function WelcomeSection({ onNavigate }) {
     {
       icon: Search,
       title: 'Búsquedas Internas',
-      description: 'Simula búsquedas dentro de bases de datos locales y sistemas internos.',
+      description: 'Simula búsquedas dentro de memoria principal y en estructuras de arboles.',
       path: 'internal-search'
     },
     {
       icon: Globe,
       title: 'Búsquedas Externas',
-      description: 'Practica búsquedas en recursos externos y bases de datos públicas.',
+      description: 'Practica búsquedas en memoria de almacenamiento, estructuras por bloques e indices.',
       path: 'external-search'
     },
     {
       icon: Info,
       title: 'Información',
-      description: 'Consulta guías, documentación y recursos del simulador.',
+      description: 'Consulta objetivo, responsables y información del aplicativo.',
       path: 'information'
     }
   ];
@@ -37,12 +37,12 @@ function WelcomeSection({ onNavigate }) {
         
         <div className="welcome-content">
           <p className="welcome-subtitle">
-            Simulador de búsquedas para la clase de Florez
+            Simulador de búsquedas para la clase de Ciencias de la Computación 2
           </p>
           
           <div className="welcome-description">
             <p>
-              Este simulador está diseñado para practicar y mejorar las técnicas de búsqueda 
+              Este simulador está diseñado para practicar e ilustrar las técnicas de búsqueda 
               tanto internas como externas de manera eficiente y organizada. Aquí podrás:
             </p>
             

@@ -1,18 +1,13 @@
-import { useState } from 'react';
 import { 
   ArrowLeft,
   ArrowRight,
   Scissors,
   Hash,
-  List,
-  Play,
-  Loader
+  List
 } from 'lucide-react';
 import '../styles/SearchSection.css';
 
-function ClassicSearchSection({ onNavigate, onSimulate }) {
-  const [loading, setLoading] = useState({});
-
+function ClassicSearchSection({ onNavigate }) {
   const classicMethods = [
     {
       id: 'secuencial',
@@ -40,25 +35,12 @@ function ClassicSearchSection({ onNavigate, onSimulate }) {
     }
   ];
 
-  const handleSimulate = async (methodId) => {
-    setLoading(prev => ({ ...prev, [methodId]: true }));
-    
-    try {
-      await onSimulate(methodId);
-    } catch (error) {
-      console.error('Error en simulación:', error);
-    } finally {
-      setLoading(prev => ({ ...prev, [methodId]: false }));
-    }
-  };
-
   const handleMethodClick = (method) => {
     onNavigate(method.path);
   };
 
   const renderMethodCard = (method) => {
     const IconComponent = method.icon;
-    const isLoading = loading[method.id];
 
     return (
       <div 
@@ -66,6 +48,7 @@ function ClassicSearchSection({ onNavigate, onSimulate }) {
         className="search-method-card" 
         data-method={method.id}
         onClick={() => handleMethodClick(method)}
+        style={{ cursor: 'pointer' }}
       >
         <div className="method-icon">
           <IconComponent size={28} />
@@ -76,26 +59,6 @@ function ClassicSearchSection({ onNavigate, onSimulate }) {
           <span className="complexity-label">Complejidad:</span>
           <span className="complexity-value">{method.complexity}</span>
         </div>
-        <button 
-          className="method-btn"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleSimulate(method.id);
-          }}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <>
-              <Loader size={16} className="animate-spin" />
-              Cargando...
-            </>
-          ) : (
-            <>
-              <Play size={16} />
-              Simular
-            </>
-          )}
-        </button>
       </div>
     );
   };
