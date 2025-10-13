@@ -163,8 +163,18 @@ function InternalSearchSection({ onNavigate, onSimulate }) {
             <p>Algoritmos fundamentales de búsqueda en estructuras lineales</p>
           </div>
           
-          <div className="search-methods-grid">
-            {searchMethods.clasicas.map(method => renderMethodCard(method))}
+          <div className="subsection-nav">
+            <button 
+              className="subsection-btn"
+              onClick={() => onNavigate('clasicas')}
+            >
+              <List size={24} />
+              <div className="subsection-content">
+                <h3>Explorar Búsquedas Clásicas</h3>
+                <p>Secuencial, Binaria, Funciones Hash</p>
+              </div>
+              <ArrowRight size={20} />
+            </button>
           </div>
         </div>
 
@@ -178,8 +188,18 @@ function InternalSearchSection({ onNavigate, onSimulate }) {
             <p>Algoritmos especializados para estructuras de árbol y métodos avanzados</p>
           </div>
           
-          <div className="search-methods-grid">
-            {searchMethods.arboles.map(method => renderMethodCard(method))}
+          <div className="subsection-nav">
+            <button 
+              className="subsection-btn"
+              onClick={() => onNavigate('arboles')}
+            >
+              <Network size={24} />
+              <div className="subsection-content">
+                <h3>Explorar Búsquedas en Árboles</h3>
+                <p>Residuos, Digitales, Trie, Residuos Múltiples, Huffman</p>
+              </div>
+              <ArrowRight size={20} />
+            </button>
           </div>
         </div>
 

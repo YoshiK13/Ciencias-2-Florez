@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import Header from './components/Header';
-import Sidebar from './components/Sidebar';
+import SidebarNew from './components/SidebarNew';
 import MainContent from './components/MainContent';
 import WelcomeSection from './components/WelcomeSection';
 import InternalSearchSection from './components/InternalSearchSection';
+import ClassicSearchSection from './components/ClassicSearchSection';
+import TreeSearchSection from './components/TreeSearchSection';
+import InformationSection from './components/InformationSection';
 import { useResponsive } from './hooks/useResponsive';
 import { useSearch } from './hooks/useSearch';
 import './styles/globals.css';
@@ -62,6 +65,26 @@ function App() {
       case 'home':
         return <WelcomeSection onNavigate={handleNavigate} />;
       case 'internal-search':
+        return (
+          <InternalSearchSection 
+            onNavigate={handleNavigate}
+            onSimulate={handleSimulate}
+          />
+        );
+      case 'clasicas':
+        return (
+          <ClassicSearchSection 
+            onNavigate={handleNavigate}
+            onSimulate={handleSimulate}
+          />
+        );
+      case 'arboles':
+        return (
+          <TreeSearchSection 
+            onNavigate={handleNavigate}
+            onSimulate={handleSimulate}
+          />
+        );
       case 'secuencial':
       case 'binaria':
       case 'hash':
@@ -70,12 +93,23 @@ function App() {
       case 'trie':
       case 'multiples':
       case 'huffman':
-        return (
-          <InternalSearchSection 
-            onNavigate={handleNavigate}
-            onSimulate={handleSimulate}
-          />
-        );
+        // Aquí podríamos mostrar páginas específicas para cada algoritmo
+        // Por ahora redirigimos a la sección correspondiente
+        if (['secuencial', 'binaria', 'hash'].includes(currentSection)) {
+          return (
+            <ClassicSearchSection 
+              onNavigate={handleNavigate}
+              onSimulate={handleSimulate}
+            />
+          );
+        } else {
+          return (
+            <TreeSearchSection 
+              onNavigate={handleNavigate}
+              onSimulate={handleSimulate}
+            />
+          );
+        }
       case 'external-search':
         return (
           <div className="section-container">
@@ -84,12 +118,7 @@ function App() {
           </div>
         );
       case 'information':
-        return (
-          <div className="section-container">
-            <h1>Información</h1>
-            <p>Sección en desarrollo...</p>
-          </div>
-        );
+        return <InformationSection onNavigate={handleNavigate} />;
       default:
         return <WelcomeSection onNavigate={handleNavigate} />;
     }
@@ -102,7 +131,7 @@ function App() {
         isMenuOpen={sidebarVisible}
       />
       
-      <Sidebar
+      <SidebarNew
         isVisible={sidebarVisible}
         onNavigate={handleNavigate}
         currentSection={currentSection}

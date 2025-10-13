@@ -60,6 +60,7 @@ function Sidebar({
           id: 'clasicas',
           label: 'Clásicas',
           icon: 'list',
+          path: 'clasicas',
           submenu: [
             {
               id: 'secuencial',
@@ -85,6 +86,7 @@ function Sidebar({
           id: 'arboles',
           label: 'Árboles',
           icon: 'network',
+          path: 'arboles',
           submenu: [
             {
               id: 'residuos',
@@ -134,6 +136,33 @@ function Sidebar({
     }
   ];
 
+  // Efecto para abrir automáticamente los menús según la sección actual
+  useEffect(() => {
+    const internalSearchSections = ['internal-search', 'clasicas', 'arboles', 'secuencial', 'binaria', 'hash', 'residuos', 'digitales', 'trie', 'multiples', 'huffman'];
+    
+    if (internalSearchSections.includes(currentSection)) {
+      setOpenMenus(prev => ({
+        ...prev,
+        'internal-search': true
+      }));
+      
+      // Abrir también el submenú correspondiente
+      if (['secuencial', 'binaria', 'hash'].includes(currentSection)) {
+        setOpenMenus(prev => ({
+          ...prev,
+          'internal-search': true,
+          'clasicas': true
+        }));
+      } else if (['residuos', 'digitales', 'trie', 'multiples', 'huffman'].includes(currentSection)) {
+        setOpenMenus(prev => ({
+          ...prev,
+          'internal-search': true,
+          'arboles': true
+        }));
+      }
+    }
+  }, [currentSection]);
+
   const toggleMenu = (menuId) => {
     setOpenMenus(prev => ({
       ...prev,
@@ -141,7 +170,7 @@ function Sidebar({
     }));
   };
 
-  const handleNavigation = (path, menuId) => {
+  const handleNavigation = (path) => {
     onNavigate(path);
     
     if (isMobile) {
@@ -159,17 +188,31 @@ function Sidebar({
   const renderMenuItem = (item, level = 0) => {
     const hasSubmenu = item.submenu && item.submenu.length > 0;
     const isOpen = openMenus[item.id];
-    const isActive = currentSection === item.path;
+    
+    // NUEVA LÓGICA ULTRA SIMPLE: Solo está activo si es EXACTAMENTE la sección actual
+    const isActive = (currentSection === item.path);
+    
+    // Construir clases CSS - SOLO active, sin parent-highlight
+    const cssClasses = [
+      'menu-item',
+      level === 1 ? 'submenu-item' : level === 2 ? 'submenu-level-2-item' : '',
+      isActive ? 'active' : '',
+      isOpen ? 'open' : ''
+    ].filter(Boolean).join(' ');
 
     return (
-      <li key={item.id} className={`menu-item ${level === 0 ? '' : level === 1 ? 'submenu-item' : 'submenu-level-2-item'} ${isActive ? 'active' : ''} ${isOpen ? 'open' : ''}`}>
+      <li key={item.id} className={cssClasses}>
         <div
           className={`menu-link ${level === 1 ? 'submenu-link' : level === 2 ? 'submenu-level-2-link' : ''}`}
           onClick={() => {
             if (hasSubmenu) {
               toggleMenu(item.id);
+              // Si es el elemento principal y tiene path, también navegar
+              if (level === 0 && item.path) {
+                handleNavigation(item.path);
+              }
             } else {
-              handleNavigation(item.path, item.id);
+              handleNavigation(item.path);
             }
           }}
         >
