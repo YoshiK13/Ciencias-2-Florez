@@ -6,6 +6,7 @@ import WelcomeSection from './components/WelcomeSection';
 import InternalSearchSection from './components/InternalSearchSection';
 import ClassicSearchSection from './components/ClassicSearchSection';
 import TreeSearchSection from './components/TreeSearchSection';
+import SequentialSearchSection from './components/SequentialSearchSection';
 import InformationSection from './components/InformationSection';
 import { useResponsive } from './hooks/useResponsive';
 import { useSearch } from './hooks/useSearch';
@@ -86,6 +87,12 @@ function App() {
           />
         );
       case 'secuencial':
+        return (
+          <SequentialSearchSection 
+            onNavigate={handleNavigate}
+            onSimulate={handleSimulate}
+          />
+        );
       case 'binaria':
       case 'hash':
       case 'residuos':
@@ -95,7 +102,7 @@ function App() {
       case 'huffman':
         // Aquí podríamos mostrar páginas específicas para cada algoritmo
         // Por ahora redirigimos a la sección correspondiente
-        if (['secuencial', 'binaria', 'hash'].includes(currentSection)) {
+        if (['binaria', 'hash'].includes(currentSection)) {
           return (
             <ClassicSearchSection 
               onNavigate={handleNavigate}
