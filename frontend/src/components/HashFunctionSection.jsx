@@ -13,11 +13,12 @@ import {
 } from 'lucide-react';
 import '../styles/SequentialSearchSection.css';
 
-function BinarySearchSection({ onNavigate }) {
+function HashFunctionSection({ onNavigate }) {
   // Estados para la configuración
   const [structureSize, setStructureSize] = useState(20);
   const [keySize, setKeySize] = useState(4);
-  const [collisionMethod, setCollisionMethod] = useState('binaria');
+  const [hashFunction, setHashFunction] = useState('mod');
+  const [collisionMethod, setCollisionMethod] = useState('secuencial');
   const [isStructureCreated, setIsStructureCreated] = useState(false);
   
   // Estados para las operaciones
@@ -30,7 +31,7 @@ function BinarySearchSection({ onNavigate }) {
   const [isSimulating, setIsSimulating] = useState(false);
   
   // Estado para los datos de la estructura
-  const [memoryArray, setMemoryArray] = useState([]); // Array de claves ordenadas
+  const [memoryArray, setMemoryArray] = useState([]);
   
   // Estados para mensajes informativos
   const [message, setMessage] = useState({ text: '', type: '' });
@@ -67,10 +68,10 @@ function BinarySearchSection({ onNavigate }) {
 
   // Interceptar intentos de navegación del componente padre
   React.useEffect(() => {
-    window.binarySearchCheckUnsavedChanges = checkForUnsavedChanges;
+    window.hashFunctionCheckUnsavedChanges = checkForUnsavedChanges;
     
     return () => {
-      delete window.binarySearchCheckUnsavedChanges;
+      delete window.hashFunctionCheckUnsavedChanges;
     };
   }, [checkForUnsavedChanges]);
 
@@ -114,17 +115,71 @@ function BinarySearchSection({ onNavigate }) {
     setHasUnsavedChanges(true);
   };
 
+  // Funciones Hash
+  const hashFunctions = {
+    mod: (key, size) => {
+      return parseInt(key) % size;
+    },
+    cuadrado: (key, size) => {
+      const squared = Math.pow(parseInt(key), 2);
+      const str = squared.toString();
+      const middle = Math.floor(str.length / 2);
+      const extracted = str.substring(middle - 1, middle + 1);
+      return parseInt(extracted || '0') % size;
+    },
+    truncamiento: (key, size) => {
+      const truncated = key.substring(0, Math.min(key.length, 3));
+      return parseInt(truncated) % size;
+    },
+    plegamiento: (key, size) => {
+      let sum = 0;
+      for (let i = 0; i < key.length; i += 2) {
+        const part = key.substring(i, i + 2);
+        sum += parseInt(part);
+      }
+      return sum % size;
+    }
+  };
+
+  // Función para aplicar función hash
+  const applyHashFunction = (key) => {
+    return hashFunctions[hashFunction](key, structureSize);
+  };
+
+  // Métodos de resolución de colisiones
+  const resolveCollision = (originalIndex, key, attempt = 0) => {
+    switch (collisionMethod) {
+      case 'secuencial':
+        return (originalIndex + attempt) % structureSize;
+      case 'cuadratica':
+        return (originalIndex + Math.pow(attempt, 2)) % structureSize;
+      case 'hashmod': {
+        const secondHash = 7 - (parseInt(key) % 7);
+        return (originalIndex + attempt * secondHash) % structureSize;
+      }
+      case 'arreglos':
+        // Para arreglos, mantenemos el índice original y manejamos listas
+        return originalIndex;
+      case 'encadenamiento':
+        // Similar a arreglos, mantenemos el índice original
+        return originalIndex;
+      default:
+        return originalIndex;
+    }
+  };
+
   // Función para crear el objeto de datos para guardar
   const createSaveData = () => {
     return {
-      fileType: 'BBF', // Binary Binary File
+      fileType: 'HHF', // Hash Hash File
       version: '1.0',
-      sectionType: 'binary-search',
-      sectionName: 'Búsqueda Binaria',
+      sectionType: 'hash-function',
+      sectionName: 'Funciones Hash',
       timestamp: new Date().toISOString(),
       configuration: {
         structureSize: structureSize,
         keySize: keySize,
+        hashFunction: hashFunction,
         collisionMethod: collisionMethod
       },
       data: {
@@ -132,8 +187,8 @@ function BinarySearchSection({ onNavigate }) {
         isStructureCreated: isStructureCreated
       },
       metadata: {
-        elementsCount: memoryArray.length,
-        description: `Estructura de búsqueda binaria con ${memoryArray.length} elementos`
+        elementsCount: memoryArray.filter(item => item !== null).length,
+        description: `Estructura hash con función ${hashFunction} y resolución ${collisionMethod}`
       }
     };
   };
@@ -146,8 +201,8 @@ function BinarySearchSection({ onNavigate }) {
     }
 
     const defaultName = currentFileName 
-      ? currentFileName.replace('.bbf', '')
-      : `busqueda-binaria-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}`;
+      ? currentFileName.replace('.hhf', '')
+      : `funciones-hash-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}`;
 
     const dataToSave = createSaveData();
     const jsonString = JSON.stringify(dataToSave, null, 2);
@@ -156,11 +211,11 @@ function BinarySearchSection({ onNavigate }) {
       // Intentar usar la File System Access API moderna si está disponible
       if ('showSaveFilePicker' in window) {
         const fileHandle = await window.showSaveFilePicker({
-          suggestedName: `${defaultName}.bbf`,
+          suggestedName: `${defaultName}.hhf`,
           types: [{
-            description: 'Archivos de Búsqueda Binaria',
+            description: 'Archivos de Funciones Hash',
             accept: {
-              'application/json': ['.bbf']
+              'application/json': ['.hhf']
             }
           }]
         });
@@ -179,7 +234,7 @@ function BinarySearchSection({ onNavigate }) {
           return; // Usuario canceló
         }
 
-        const finalFileName = fileName.endsWith('.bbf') ? fileName : `${fileName}.bbf`;
+        const finalFileName = fileName.endsWith('.hhf') ? fileName : `${fileName}.hhf`;
         const blob = new Blob([jsonString], { type: 'application/json' });
         
         // Crear enlace de descarga
@@ -217,9 +272,9 @@ function BinarySearchSection({ onNavigate }) {
         if ('showOpenFilePicker' in window) {
           const [fileHandle] = await window.showOpenFilePicker({
             types: [{
-              description: 'Archivos de Búsqueda Binaria',
+              description: 'Archivos de Funciones Hash',
               accept: {
-                'application/json': ['.bbf']
+                'application/json': ['.hhf']
               }
             }],
             multiple: false
@@ -232,7 +287,7 @@ function BinarySearchSection({ onNavigate }) {
           // Fallback para navegadores que no soportan File System Access API
           const input = document.createElement('input');
           input.type = 'file';
-          input.accept = '.bbf';
+          input.accept = '.hhf';
           
           await new Promise((resolve) => {
             input.onchange = (e) => {
@@ -253,9 +308,9 @@ function BinarySearchSection({ onNavigate }) {
           });
         }
 
-        if (!file || !fileName.endsWith('.bbf')) {
+        if (!file || !fileName.endsWith('.hhf')) {
           if (file) {
-            showMessage('Por favor seleccione un archivo .bbf válido', 'error');
+            showMessage('Por favor seleccione un archivo .hhf válido', 'error');
           }
           return;
         }
@@ -264,12 +319,12 @@ function BinarySearchSection({ onNavigate }) {
         const loadedData = JSON.parse(content);
         
         // Validar formato del archivo
-        if (!loadedData.fileType || loadedData.fileType !== 'BBF') {
-          showMessage('Archivo no válido: no es un archivo BBF', 'error');
+        if (!loadedData.fileType || loadedData.fileType !== 'HHF') {
+          showMessage('Archivo no válido: no es un archivo HHF', 'error');
           return;
         }
 
-        if (!loadedData.sectionType || loadedData.sectionType !== 'binary-search') {
+        if (!loadedData.sectionType || loadedData.sectionType !== 'hash-function') {
           showMessage('Este archivo pertenece a otra sección del simulador', 'error');
           return;
         }
@@ -277,6 +332,7 @@ function BinarySearchSection({ onNavigate }) {
         // Cargar configuración
         setStructureSize(loadedData.configuration.structureSize);
         setKeySize(loadedData.configuration.keySize);
+        setHashFunction(loadedData.configuration.hashFunction);
         setCollisionMethod(loadedData.configuration.collisionMethod);
         
         // Cargar datos
@@ -286,7 +342,7 @@ function BinarySearchSection({ onNavigate }) {
         // Actualizar visualización
         if (loadedData.data.isStructureCreated) {
           const newStructure = Array(loadedData.configuration.structureSize).fill(null).map((_, index) => ({
-            position: index + 1,
+            position: index + 1, // Numeración desde 1
             value: loadedData.data.memoryArray[index] || null,
             isHighlighted: false
           }));
@@ -388,7 +444,7 @@ function BinarySearchSection({ onNavigate }) {
   // Función para actualizar la visualización de la estructura
   const updateStructureVisualization = (array) => {
     const newStructure = Array(structureSize).fill(null).map((_, index) => ({
-      position: index + 1,
+      position: index + 1, // Numeración desde 1
       value: array[index] || null,
       isHighlighted: false
     }));
@@ -404,7 +460,7 @@ function BinarySearchSection({ onNavigate }) {
 
     if (structureSize >= 10 && keySize >= 2) {
       setIsStructureCreated(true);
-      const emptyArray = [];
+      const emptyArray = Array(structureSize).fill(null);
       setMemoryArray(emptyArray);
       updateStructureVisualization(emptyArray);
       setHistory([]);
@@ -412,7 +468,7 @@ function BinarySearchSection({ onNavigate }) {
       setMessage({ text: '', type: '' });
       setHasUnsavedChanges(true);
       setCurrentFileName(null);
-      showMessage(`Estructura creada con tamaño ${structureSize} y claves de ${keySize} caracteres`, 'success');
+      showMessage(`Estructura hash creada con función ${hashFunction} y resolución ${collisionMethod}`, 'success');
     }
   };
 
@@ -431,23 +487,38 @@ function BinarySearchSection({ onNavigate }) {
       return;
     }
 
-    // Verificar si la estructura está llena
-    if (memoryArray.length >= structureSize) {
-      showMessage('La estructura de memoria está llena', 'error');
-      return;
-    }
-
     // Verificar si la clave ya existe
     if (memoryArray.includes(formattedKey)) {
       showMessage('No se aceptan claves repetidas', 'error');
       return;
     }
 
+    // Calcular posición hash
+    const hashIndex = applyHashFunction(formattedKey);
+    let finalIndex = hashIndex;
+    let attempts = 0;
+    
+    // Resolver colisiones
+    while (memoryArray[finalIndex] !== null && attempts < structureSize) {
+      attempts++;
+      finalIndex = resolveCollision(hashIndex, formattedKey, attempts);
+      
+      if (finalIndex < 0 || finalIndex >= structureSize) {
+        finalIndex = finalIndex % structureSize;
+      }
+    }
+
+    if (attempts >= structureSize) {
+      showMessage('La estructura está llena', 'error');
+      return;
+    }
+
     // Guardar estado anterior para el historial
     const previousState = [...memoryArray];
     
-    // Insertar y ordenar numéricamente (importante para búsqueda binaria)
-    const newArray = [...memoryArray, formattedKey].sort((a, b) => parseInt(a) - parseInt(b));
+    // Insertar elemento
+    const newArray = [...memoryArray];
+    newArray[finalIndex] = formattedKey;
     setMemoryArray(newArray);
     updateStructureVisualization(newArray);
     
@@ -455,11 +526,15 @@ function BinarySearchSection({ onNavigate }) {
     addToHistory({
       type: 'insert',
       key: formattedKey,
+      position: finalIndex,
+      hashIndex: hashIndex,
+      attempts: attempts,
       previousState: previousState,
       newState: newArray
     });
 
-    showMessage(`Clave "${formattedKey}" insertada correctamente en la posición ${newArray.indexOf(formattedKey) + 1} (manteniendo orden)`, 'success');
+    const collisionMsg = attempts > 0 ? ` (${attempts} colisiones resueltas)` : '';
+    showMessage(`Clave "${formattedKey}" insertada en posición ${finalIndex + 1}${collisionMsg}`, 'success');
     setInsertKey('');
     markAsChanged();
   };
@@ -480,65 +555,54 @@ function BinarySearchSection({ onNavigate }) {
     }
 
     setIsSimulating(true);
-    let steps = 0;
     let found = false;
     let position = -1;
+    let steps = 0;
 
-    // Algoritmo de búsqueda binaria paso a paso
-    let left = 0;
-    let right = memoryArray.length - 1;
+    // Calcular posición hash inicial
+    const hashIndex = applyHashFunction(formattedKey);
+    let currentIndex = hashIndex;
     
-    while (left <= right && !found) {
+    do {
       steps++;
-      const mid = Math.floor((left + right) / 2);
-      const midValue = memoryArray[mid];
       
-      // Destacar rango actual de búsqueda
-      const highlightedStructure = structureData.map((item) => {
-        let isHighlighted = false;
-        if (item.value !== null) {
-          const valueIndex = memoryArray.indexOf(item.value);
-          if (valueIndex >= left && valueIndex <= right) {
-            isHighlighted = true;
-          }
-          // Destacar especialmente el elemento medio
-          if (valueIndex === mid) {
-            item.highlightType = 'mid';
-            isHighlighted = true;
-          }
-        }
-        return {
-          ...item,
-          isHighlighted: isHighlighted
-        };
-      });
+      // Destacar posición actual
+      const highlightedStructure = structureData.map((item, index) => ({
+        ...item,
+        isHighlighted: index === currentIndex
+      }));
       setStructureData(highlightedStructure);
 
       // Pausa para visualización
       await new Promise(resolve => setTimeout(resolve, 1000 / simulationSpeed));
 
-      if (midValue === formattedKey) {
+      if (memoryArray[currentIndex] === formattedKey) {
         found = true;
-        position = mid + 1;
+        position = currentIndex;
         break;
-      } else if (parseInt(midValue) < parseInt(formattedKey)) {
-        left = mid + 1;
-      } else {
-        right = mid - 1;
+      } else if (memoryArray[currentIndex] === null) {
+        // Posición vacía, la clave no existe
+        break;
       }
-    }
+
+      // Aplicar resolución de colisiones para siguiente posición
+      currentIndex = resolveCollision(hashIndex, formattedKey, steps);
+      if (currentIndex < 0 || currentIndex >= structureSize) {
+        currentIndex = currentIndex % structureSize;
+      }
+
+    } while (steps < structureSize && currentIndex !== hashIndex);
 
     // Quitar destacado
     const finalStructure = structureData.map(item => ({
       ...item,
-      isHighlighted: false,
-      highlightType: undefined
+      isHighlighted: false
     }));
     setStructureData(finalStructure);
 
     // Mostrar resultado
     if (found) {
-      showMessage(`Clave "${formattedKey}" encontrada en la posición ${position} después de ${steps} comparaciones`, 'success');
+      showMessage(`Clave "${formattedKey}" encontrada en la posición ${position + 1} después de ${steps} comparaciones`, 'success');
     } else {
       showMessage(`Clave "${formattedKey}" no se encuentra en la estructura después de ${steps} comparaciones`, 'error');
     }
@@ -561,7 +625,7 @@ function BinarySearchSection({ onNavigate }) {
       return;
     }
 
-    // Verificar si la clave existe
+    // Buscar la clave en la estructura
     const keyIndex = memoryArray.indexOf(formattedKey);
     if (keyIndex === -1) {
       showMessage(`La clave "${formattedKey}" no se encuentra en la estructura`, 'error');
@@ -571,8 +635,9 @@ function BinarySearchSection({ onNavigate }) {
     // Guardar estado anterior para el historial
     const previousState = [...memoryArray];
     
-    // Eliminar clave (el array se mantiene ordenado automáticamente)
-    const newArray = memoryArray.filter(item => item !== formattedKey);
+    // Eliminar clave
+    const newArray = [...memoryArray];
+    newArray[keyIndex] = null;
     setMemoryArray(newArray);
     updateStructureVisualization(newArray);
     
@@ -580,11 +645,12 @@ function BinarySearchSection({ onNavigate }) {
     addToHistory({
       type: 'delete',
       key: formattedKey,
+      position: keyIndex,
       previousState: previousState,
       newState: newArray
     });
 
-    showMessage(`Clave "${formattedKey}" eliminada correctamente`, 'success');
+    showMessage(`Clave "${formattedKey}" eliminada de la posición ${keyIndex + 1}`, 'success');
     setDeleteKey('');
     markAsChanged();
   };
@@ -660,7 +726,7 @@ function BinarySearchSection({ onNavigate }) {
             return (
               <React.Fragment key={currentIndex}>
                 {/* Fila actual */}
-                <div className={`table-row ${item.isHighlighted ? 'highlighted' : ''} ${item.highlightType === 'mid' ? 'mid-highlight' : ''}`}>
+                <div className={`table-row ${item.isHighlighted ? 'highlighted' : ''}`}>
                   <span className="row-number">{item.position}</span>
                   <span className={`cell-memory ${!item.value ? 'empty' : ''}`}>
                     {item.value || '—'}
@@ -685,7 +751,7 @@ function BinarySearchSection({ onNavigate }) {
   return (
     <div className="sequential-search-section">
       <div className="section-header">
-        <h1>Búsqueda Binaria</h1>
+        <h1>Funciones Hash</h1>
       </div>
 
       {/* Sección de Configuración */}
@@ -722,23 +788,36 @@ function BinarySearchSection({ onNavigate }) {
           </div>
 
           <div className="config-group">
+            <label htmlFor="hashFunction">Función Hash</label>
+            <select
+              id="hashFunction"
+              value={hashFunction}
+              onChange={(e) => setHashFunction(e.target.value)}
+              className="config-select"
+            >
+              <option value="mod">Mod</option>
+              <option value="cuadrado">Cuadrado</option>
+              <option value="truncamiento">Truncamiento</option>
+              <option value="plegamiento">Plegamiento</option>
+            </select>
+            <small>Método para calcular el índice hash</small>
+          </div>
+
+          <div className="config-group">
             <label htmlFor="collisionMethod">Método de Colisión</label>
             <select
               id="collisionMethod"
               value={collisionMethod}
               onChange={(e) => setCollisionMethod(e.target.value)}
               className="config-select"
-              disabled
-              title="Deshabilitado en búsqueda binaria (no hay colisiones)"
             >
-              <option value="binaria">Búsqueda Binaria</option>
               <option value="secuencial">Secuencial</option>
-              <option value="potencia2">Potencia 2</option>
-              <option value="hashmod">Hash MOD</option>
-              <option value="doble">Hash Doble</option>
-              <option value="cuadratico">Sondeo Cuadrático</option>
+              <option value="cuadratica">Cuadrática</option>
+              <option value="hashmod">Hash Mod</option>
+              <option value="arreglos">Arreglos</option>
+              <option value="encadenamiento">Encadenamiento</option>
             </select>
-            <small style={{color: '#888', fontStyle: 'italic'}}>Deshabilitado en esta sección</small>
+            <small>Método para resolver colisiones</small>
           </div>
 
           <div className="button-container">
@@ -768,7 +847,7 @@ function BinarySearchSection({ onNavigate }) {
           <button 
             className="action-btn"
             onClick={handleLoad}
-            title="Cargar estructura desde archivo .bbf"
+            title="Cargar estructura desde archivo .hhf"
           >
             <FolderOpen size={18} />
             <span>Abrir</span>
@@ -948,9 +1027,11 @@ function BinarySearchSection({ onNavigate }) {
           ) : (
             <div className="canvas-content">
               <div className="simulation-info">
-                <p><strong>Estructura:</strong> Tamaño {structureSize} (Ordenada)</p>
+                <p><strong>Estructura:</strong> Tamaño {structureSize}</p>
+                <p><strong>Función Hash:</strong> {hashFunction}</p>
+                <p><strong>Resolución de Colisiones:</strong> {collisionMethod}</p>
                 <p><strong>Tipo de Clave:</strong> Numérica de {keySize} dígitos</p>
-                <p><strong>Elementos:</strong> {memoryArray.length}/{structureSize}</p>
+                <p><strong>Elementos:</strong> {memoryArray.filter(item => item !== null).length}/{structureSize}</p>
               </div>
               
               {/* Visualización de la estructura de datos */}
@@ -965,4 +1046,4 @@ function BinarySearchSection({ onNavigate }) {
   );
 }
 
-export default BinarySearchSection;
+export default HashFunctionSection;

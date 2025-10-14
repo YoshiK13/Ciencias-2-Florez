@@ -664,45 +664,6 @@ function SequentialSearchSection({ onNavigate }) {
         <h1>Búsqueda Secuencial</h1>
       </div>
 
-      {/* Sección de Archivo */}
-      <div className="file-section">
-        <div className="file-actions">
-          <button 
-            className={`action-btn ${hasUnsavedChanges ? 'unsaved-changes' : ''}`}
-            onClick={handleSave}
-            disabled={!isStructureCreated}
-            title={hasUnsavedChanges ? "Hay cambios sin guardar" : "Guardar estructura"}
-          >
-            <Save size={18} />
-            <span>Guardar{hasUnsavedChanges ? '*' : ''}</span>
-          </button>
-          <button 
-            className="action-btn"
-            onClick={handleLoad}
-            title="Cargar estructura desde archivo .sbf"
-          >
-            <FolderOpen size={18} />
-            <span>Abrir</span>
-          </button>
-          <button 
-            className="action-btn"
-            onClick={handleUndo}
-            disabled={historyIndex < 0}
-          >
-            <Undo size={18} />
-            <span>Deshacer</span>
-          </button>
-          <button 
-            className="action-btn"
-            onClick={handleRedo}
-            disabled={historyIndex >= history.length - 1}
-          >
-            <Redo size={18} />
-            <span>Rehacer</span>
-          </button>
-        </div>
-      </div>
-
       {/* Sección de Configuración */}
       <div className="configuration-section">
         <h2>
@@ -764,6 +725,45 @@ function SequentialSearchSection({ onNavigate }) {
               Crear Estructura
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Sección de Archivo */}
+      <div className="file-section">
+        <div className="file-actions">
+          <button 
+            className={`action-btn ${hasUnsavedChanges ? 'unsaved-changes' : ''}`}
+            onClick={handleSave}
+            disabled={!isStructureCreated}
+            title={hasUnsavedChanges ? "Hay cambios sin guardar" : "Guardar estructura"}
+          >
+            <Save size={18} />
+            <span>Guardar{hasUnsavedChanges ? '*' : ''}</span>
+          </button>
+          <button 
+            className="action-btn"
+            onClick={handleLoad}
+            title="Cargar estructura desde archivo .sbf"
+          >
+            <FolderOpen size={18} />
+            <span>Abrir</span>
+          </button>
+          <button 
+            className="action-btn"
+            onClick={handleUndo}
+            disabled={historyIndex < 0}
+          >
+            <Undo size={18} />
+            <span>Deshacer</span>
+          </button>
+          <button 
+            className="action-btn"
+            onClick={handleRedo}
+            disabled={historyIndex >= history.length - 1}
+          >
+            <Redo size={18} />
+            <span>Rehacer</span>
+          </button>
         </div>
       </div>
 

@@ -8,6 +8,7 @@ import ClassicSearchSection from './components/ClassicSearchSection';
 import TreeSearchSection from './components/TreeSearchSection';
 import SequentialSearchSection from './components/SequentialSearchSection';
 import BinarySearchSection from './components/BinarySearchSection';
+import HashFunctionSection from './components/HashFunctionSection';
 import InformationSection from './components/InformationSection';
 import { useResponsive } from './hooks/useResponsive';
 import { useSearch } from './hooks/useSearch';
@@ -39,6 +40,13 @@ function App() {
     // Verificar si hay cambios no guardados en búsqueda binaria
     else if (currentSection === 'binaria' && window.binarySearchCheckUnsavedChanges) {
       window.binarySearchCheckUnsavedChanges(section, () => {
+        setCurrentSection(section);
+        console.log('Navegando a:', section);
+      });
+    }
+    // Verificar si hay cambios no guardados en funciones hash
+    else if (currentSection === 'hash' && window.hashFunctionCheckUnsavedChanges) {
+      window.hashFunctionCheckUnsavedChanges(section, () => {
         setCurrentSection(section);
         console.log('Navegando a:', section);
       });
@@ -113,6 +121,11 @@ function App() {
           />
         );
       case 'hash':
+        return (
+          <HashFunctionSection 
+            onNavigate={handleNavigate}
+          />
+        );
       case 'residuos':
       case 'digitales':
       case 'trie':
@@ -120,19 +133,11 @@ function App() {
       case 'huffman':
         // Aquí podríamos mostrar páginas específicas para cada algoritmo
         // Por ahora redirigimos a la sección correspondiente
-        if (currentSection === 'hash') {
-          return (
-            <ClassicSearchSection 
-              onNavigate={handleNavigate}
-            />
-          );
-        } else {
-          return (
-            <TreeSearchSection 
-              onNavigate={handleNavigate}
-            />
-          );
-        }
+        return (
+          <TreeSearchSection 
+            onNavigate={handleNavigate}
+          />
+        );
       case 'external-search':
         return (
           <div className="section-container">
