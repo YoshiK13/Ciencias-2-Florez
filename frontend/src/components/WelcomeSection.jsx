@@ -1,4 +1,4 @@
-import { Search, Globe, Info } from 'lucide-react';
+import { Search, Globe, Network, Info } from 'lucide-react';
 import '../styles/MainContent.css';
 
 function WelcomeSection({ onNavigate }) {
@@ -14,6 +14,12 @@ function WelcomeSection({ onNavigate }) {
       title: 'Búsquedas Externas',
       description: 'Practica búsquedas en memoria de almacenamiento, estructuras por bloques e indices.',
       path: 'external-search'
+    },
+    {
+      icon: Network,
+      title: 'Grafos',
+      description: 'Explora algoritmos de grafos, recorridos, caminos más cortos y árboles de expansión.',
+      path: 'grafos'
     },
     {
       icon: Info,
@@ -32,12 +38,12 @@ function WelcomeSection({ onNavigate }) {
       <div className="welcome-container">
         <div className="welcome-header">
           <Search className="welcome-icon" size={64} />
-          <h1>¡Bienvenido al Simulador de Búsquedas!</h1>
+          <h1>¡Bienvenido al Simulador de Ciencias de Computación 2!</h1>
         </div>
         
         <div className="welcome-content">
           <p className="welcome-subtitle">
-            Simulador de búsquedas para la clase de Ciencias de la Computación 2
+            Simulador educativo para la clase de Ciencias de la Computación 2
           </p>
           
           <div className="welcome-description">

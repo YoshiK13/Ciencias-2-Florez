@@ -1,7 +1,7 @@
 {
   "name": "ciencias-2-florez",
   "version": "1.0.0",
-  "description": "Simulador de búsquedas para la clase de Florez - Full Stack Application",
+  "description": "Simulador de Ciencias de Computación 2 para la clase de Florez - Full Stack Application",
   "main": "index.js",
   "scripts": {
     "setup": "./setup.sh",

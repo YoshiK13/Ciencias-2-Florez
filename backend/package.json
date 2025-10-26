@@ -1,7 +1,7 @@
 {
   "name": "ciencias-2-florez-backend",
   "version": "1.0.0",
-  "description": "Backend API para el simulador de búsquedas de la clase de Florez",
+  "description": "Backend API para el Simulador de Ciencias de Computación 2 de la clase de Florez",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",

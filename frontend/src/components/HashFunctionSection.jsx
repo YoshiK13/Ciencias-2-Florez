@@ -21,6 +21,14 @@ function HashFunctionSection({ onNavigate }) {
   const [collisionMethod, setCollisionMethod] = useState('secuencial');
   const [isStructureCreated, setIsStructureCreated] = useState(false);
   
+  // Estados para la configuración actual de la estructura creada
+  const [currentStructureConfig, setCurrentStructureConfig] = useState({
+    hashFunction: 'mod',
+    collisionMethod: 'secuencial',
+    structureSize: 20,
+    keySize: 4
+  });
+  
   // Estados para las operaciones
   const [simulationSpeed, setSimulationSpeed] = useState(3);
   const [insertKey, setInsertKey] = useState('');
@@ -123,39 +131,129 @@ function HashFunctionSection({ onNavigate }) {
     cuadrado: (key, size) => {
       const squared = Math.pow(parseInt(key), 2);
       const str = squared.toString();
-      const middle = Math.floor(str.length / 2);
-      const extracted = str.substring(middle - 1, middle + 1);
-      return parseInt(extracted || '0') % size;
+      
+      // Calcular cuántos dígitos tomar según el tamaño de la estructura
+      const digitsNeeded = Math.floor(Math.log10(size)) + 1;
+      
+      // Tomar dígitos centrales hacia la izquierda
+      const startIndex = Math.max(0, Math.floor((str.length - digitsNeeded) / 2));
+      const extracted = str.substring(startIndex, startIndex + digitsNeeded);
+      
+      // Sumar 1 al resultado y aplicar módulo para que quepa en la estructura
+      return (parseInt(extracted || '0') + 1) % size;
     },
     truncamiento: (key, size) => {
-      const truncated = key.substring(0, Math.min(key.length, 3));
-      return parseInt(truncated) % size;
+      // Definir posiciones específicas a tomar (siempre las mismas para todas las claves)
+      const positions = [0, 2]; // Tomar posiciones 0 y 2 (primera y tercera)
+      let extracted = '';
+      
+      positions.forEach(pos => {
+        if (pos < key.length) {
+          extracted += key[pos];
+        }
+      });
+      
+      // Si no se pudo extraer nada, usar '0'
+      if (extracted === '') {
+        extracted = '0';
+      }
+      
+      // Sumar 1 al resultado y aplicar módulo
+      return (parseInt(extracted) + 1) % size;
     },
     plegamiento: (key, size) => {
+      // Calcular tamaño de cada parte (dividir en 2 partes iguales)
+      const partSize = Math.floor(key.length / 2);
       let sum = 0;
-      for (let i = 0; i < key.length; i += 2) {
-        const part = key.substring(i, i + 2);
-        sum += parseInt(part);
+      let parts = [];
+      
+      // Dividir la clave en partes iguales
+      for (let i = 0; i < key.length; i += partSize) {
+        const part = key.substring(i, i + partSize);
+        if (part.length > 0) {
+          parts.push(part);
+          sum += parseInt(part);
+        }
       }
-      return sum % size;
+      
+      // Sumar 1 al resultado y aplicar módulo
+      return (sum + 1) % size;
     }
   };
 
-  // Función para aplicar función hash
+  // Función para aplicar función hash (usa la configuración actual de la estructura)
   const applyHashFunction = (key) => {
-    return hashFunctions[hashFunction](key, structureSize);
+    const activeHashFunction = isStructureCreated ? currentStructureConfig.hashFunction : hashFunction;
+    const activeStructureSize = isStructureCreated ? currentStructureConfig.structureSize : structureSize;
+    return hashFunctions[activeHashFunction](key, activeStructureSize);
   };
 
-  // Métodos de resolución de colisiones
+  // Función para generar mensaje detallado de la función hash
+  const getHashFunctionMessage = (key, result) => {
+    const activeHashFunction = isStructureCreated ? currentStructureConfig.hashFunction : hashFunction;
+    const activeStructureSize = isStructureCreated ? currentStructureConfig.structureSize : structureSize;
+    
+    switch (activeHashFunction) {
+      case 'mod':
+        return `Hash MOD: ${key} % ${activeStructureSize} = ${result}`;
+      
+      case 'cuadrado': {
+        const squared = Math.pow(parseInt(key), 2);
+        const str = squared.toString();
+        const digitsNeeded = Math.floor(Math.log10(activeStructureSize)) + 1;
+        const startIndex = Math.max(0, Math.floor((str.length - digitsNeeded) / 2));
+        const extracted = str.substring(startIndex, startIndex + digitsNeeded);
+        const beforeMod = parseInt(extracted || '0') + 1;
+        return `Hash Cuadrado: ${key}² = ${squared} → dígitos centrales: ${extracted} → +1 = ${beforeMod} → ${beforeMod} % ${activeStructureSize} = ${result}`;
+      }
+      
+      case 'truncamiento': {
+        const positions = [0, 2];
+        let extracted = '';
+        positions.forEach(pos => {
+          if (pos < key.length) {
+            extracted += key[pos];
+          }
+        });
+        if (extracted === '') extracted = '0';
+        const beforeMod = parseInt(extracted) + 1;
+        return `Hash Truncamiento: posiciones [${positions.join(', ')}] de ${key} = ${extracted} → +1 = ${beforeMod} → ${beforeMod} % ${activeStructureSize} = ${result}`;
+      }
+      
+      case 'plegamiento': {
+        const partSize = Math.floor(key.length / 2);
+        let parts = [];
+        let sum = 0;
+        
+        for (let i = 0; i < key.length; i += partSize) {
+          const part = key.substring(i, i + partSize);
+          if (part.length > 0) {
+            parts.push(part);
+            sum += parseInt(part);
+          }
+        }
+        const beforeMod = sum + 1;
+        return `Hash Plegamiento: ${parts.length} partes [${parts.join(', ')}] → suma = ${sum} → +1 = ${beforeMod} → ${beforeMod} % ${activeStructureSize} = ${result}`;
+      }
+      
+      default:
+        return `Hash: ${result}`;
+    }
+  };
+
+  // Métodos de resolución de colisiones (usa la configuración actual de la estructura)
   const resolveCollision = (originalIndex, key, attempt = 0) => {
-    switch (collisionMethod) {
+    const activeCollisionMethod = isStructureCreated ? currentStructureConfig.collisionMethod : collisionMethod;
+    const activeStructureSize = isStructureCreated ? currentStructureConfig.structureSize : structureSize;
+    
+    switch (activeCollisionMethod) {
       case 'secuencial':
-        return (originalIndex + attempt) % structureSize;
+        return (originalIndex + attempt) % activeStructureSize;
       case 'cuadratica':
-        return (originalIndex + Math.pow(attempt, 2)) % structureSize;
+        return (originalIndex + Math.pow(attempt, 2)) % activeStructureSize;
       case 'hashmod': {
         const secondHash = 7 - (parseInt(key) % 7);
-        return (originalIndex + attempt * secondHash) % structureSize;
+        return (originalIndex + attempt * secondHash) % activeStructureSize;
       }
       case 'arreglos':
         // Para arreglos, mantenemos el índice original y manejamos listas
@@ -335,6 +433,16 @@ function HashFunctionSection({ onNavigate }) {
         setHashFunction(loadedData.configuration.hashFunction);
         setCollisionMethod(loadedData.configuration.collisionMethod);
         
+        // Si hay estructura creada, guardar también la configuración actual
+        if (loadedData.data.isStructureCreated) {
+          setCurrentStructureConfig({
+            hashFunction: loadedData.configuration.hashFunction,
+            collisionMethod: loadedData.configuration.collisionMethod,
+            structureSize: loadedData.configuration.structureSize,
+            keySize: loadedData.configuration.keySize
+          });
+        }
+        
         // Cargar datos
         setMemoryArray(loadedData.data.memoryArray || []);
         setIsStructureCreated(loadedData.data.isStructureCreated || false);
@@ -459,6 +567,14 @@ function HashFunctionSection({ onNavigate }) {
     }
 
     if (structureSize >= 10 && keySize >= 2) {
+      // Guardar la configuración actual para la estructura
+      setCurrentStructureConfig({
+        hashFunction: hashFunction,
+        collisionMethod: collisionMethod,
+        structureSize: structureSize,
+        keySize: keySize
+      });
+      
       setIsStructureCreated(true);
       const emptyArray = Array(structureSize).fill(null);
       setMemoryArray(emptyArray);
@@ -468,7 +584,7 @@ function HashFunctionSection({ onNavigate }) {
       setMessage({ text: '', type: '' });
       setHasUnsavedChanges(true);
       setCurrentFileName(null);
-      showMessage(`Estructura hash creada con función ${hashFunction} y resolución ${collisionMethod}`, 'success');
+      showMessage(`Estructura hash creada con función ${hashFunction} y resolución de colisiones ${collisionMethod}`, 'success');
     }
   };
 
@@ -495,6 +611,7 @@ function HashFunctionSection({ onNavigate }) {
 
     // Calcular posición hash
     const hashIndex = applyHashFunction(formattedKey);
+    const hashMessage = getHashFunctionMessage(formattedKey, hashIndex);
     let finalIndex = hashIndex;
     let attempts = 0;
     
@@ -534,7 +651,7 @@ function HashFunctionSection({ onNavigate }) {
     });
 
     const collisionMsg = attempts > 0 ? ` (${attempts} colisiones resueltas)` : '';
-    showMessage(`Clave "${formattedKey}" insertada en posición ${finalIndex + 1}${collisionMsg}`, 'success');
+    showMessage(`${hashMessage} → Insertada en posición ${finalIndex + 1}${collisionMsg}`, 'success');
     setInsertKey('');
     markAsChanged();
   };
@@ -1027,11 +1144,11 @@ function HashFunctionSection({ onNavigate }) {
           ) : (
             <div className="canvas-content">
               <div className="simulation-info">
-                <p><strong>Estructura:</strong> Tamaño {structureSize}</p>
-                <p><strong>Función Hash:</strong> {hashFunction}</p>
-                <p><strong>Resolución de Colisiones:</strong> {collisionMethod}</p>
-                <p><strong>Tipo de Clave:</strong> Numérica de {keySize} dígitos</p>
-                <p><strong>Elementos:</strong> {memoryArray.filter(item => item !== null).length}/{structureSize}</p>
+                <p><strong>Estructura:</strong> Tamaño {isStructureCreated ? currentStructureConfig.structureSize : structureSize}</p>
+                <p><strong>Función Hash:</strong> {isStructureCreated ? currentStructureConfig.hashFunction : hashFunction}</p>
+                <p><strong>Resolución de Colisiones:</strong> {isStructureCreated ? currentStructureConfig.collisionMethod : collisionMethod}</p>
+                <p><strong>Tipo de Clave:</strong> Numérica de {isStructureCreated ? currentStructureConfig.keySize : keySize} dígitos</p>
+                <p><strong>Elementos:</strong> {memoryArray.filter(item => item !== null).length}/{isStructureCreated ? currentStructureConfig.structureSize : structureSize}</p>
               </div>
               
               {/* Visualización de la estructura de datos */}

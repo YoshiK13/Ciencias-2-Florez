@@ -1,10 +1,10 @@
 # Ciencias-2-Florez
 
-Simulador de búsquedas para la clase de Florez - Aplicación Full Stack
+Simulador de Ciencias de Computación 2 para la clase de Florez - Aplicación Full Stack
 
 ## 📋 Descripción
 
-Este proyecto es un simulador educativo de algoritmos de búsqueda, diseñado para practicar y visualizar diferentes técnicas de búsqueda tanto internas como externas. La aplicación ha sido refactorizada de HTML/CSS/JS vanilla a una arquitectura moderna full-stack con React y Node.js.
+Este proyecto es un simulador educativo para la clase de Ciencias de Computación 2, diseñado para practicar y visualizar diferentes algoritmos y técnicas de búsqueda tanto internas como externas. La aplicación ha sido refactorizada de HTML/CSS/JS vanilla a una arquitectura moderna full-stack con React y Node.js.
 
 ## 🏗️ Arquitectura
 

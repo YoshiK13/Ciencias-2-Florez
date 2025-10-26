@@ -9,6 +9,8 @@ import TreeSearchSection from './components/TreeSearchSection';
 import SequentialSearchSection from './components/SequentialSearchSection';
 import BinarySearchSection from './components/BinarySearchSection';
 import HashFunctionSection from './components/HashFunctionSection';
+import ResiduosSearchSection from './components/ResiduosSearchSection';
+import GrafosSection from './components/GrafosSection';
 import InformationSection from './components/InformationSection';
 import { useResponsive } from './hooks/useResponsive';
 import { useSearch } from './hooks/useSearch';
@@ -47,6 +49,13 @@ function App() {
     // Verificar si hay cambios no guardados en funciones hash
     else if (currentSection === 'hash' && window.hashFunctionCheckUnsavedChanges) {
       window.hashFunctionCheckUnsavedChanges(section, () => {
+        setCurrentSection(section);
+        console.log('Navegando a:', section);
+      });
+    }
+    // Verificar si hay cambios no guardados en búsqueda por residuos
+    else if (currentSection === 'residuos' && window.residuosSearchCheckUnsavedChanges) {
+      window.residuosSearchCheckUnsavedChanges(section, () => {
         setCurrentSection(section);
         console.log('Navegando a:', section);
       });
@@ -127,6 +136,11 @@ function App() {
           />
         );
       case 'residuos':
+        return (
+          <ResiduosSearchSection 
+            onNavigate={handleNavigate}
+          />
+        );
       case 'digitales':
       case 'trie':
       case 'multiples':
@@ -145,6 +159,8 @@ function App() {
             <p>Sección en desarrollo...</p>
           </div>
         );
+      case 'grafos':
+        return <GrafosSection />;
       case 'information':
         return <InformationSection onNavigate={handleNavigate} />;
       default:
