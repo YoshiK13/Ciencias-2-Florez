@@ -81,6 +81,12 @@ const MENU_CONFIG = [
     path: 'external-search'
   },
   {
+    id: 'grafos',
+    label: 'Grafos',
+    icon: 'network',
+    path: 'grafos'
+  },
+  {
     id: 'information',
     label: 'Información',
     icon: 'info',
