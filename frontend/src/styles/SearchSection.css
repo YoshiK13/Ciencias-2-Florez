@@ -390,4 +390,71 @@
   .subsection-header h2 {
     font-size: 1.4rem;
   }
+  
+  .two-column-buttons {
+    flex-direction: column;
+  }
+  
+  .main-option-btn {
+    min-height: 250px;
+  }
+}
+
+/* Estilos para botones en dos columnas */
+.two-column-buttons {
+  display: flex;
+  gap: 30px;
+  justify-content: center;
+  align-items: stretch;
+  margin: 40px 0;
+}
+
+.main-option-btn {
+  flex: 1;
+  max-width: 400px;
+  min-height: 300px;
+  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+  border: 2px solid var(--border-color);
+  border-radius: 20px;
+  padding: 40px 30px;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.main-option-btn:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 15px 40px rgba(52, 152, 219, 0.25);
+  border-color: var(--primary-color);
+  background: linear-gradient(135deg, #ffffff, #f0f8ff);
+}
+
+.main-option-btn svg {
+  color: var(--primary-color);
+  transition: var(--transition);
+}
+
+.main-option-btn:hover svg {
+  transform: scale(1.1);
+  color: var(--secondary-color);
+}
+
+.main-option-btn h2 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.main-option-btn p {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
 }

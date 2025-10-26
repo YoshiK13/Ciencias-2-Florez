@@ -10,6 +10,7 @@ import SequentialSearchSection from './components/SequentialSearchSection';
 import BinarySearchSection from './components/BinarySearchSection';
 import HashFunctionSection from './components/HashFunctionSection';
 import ResiduosSearchSection from './components/ResiduosSearchSection';
+import DigitalSearchSection from './components/DigitalSearchSection';
 import GrafosSection from './components/GrafosSection';
 import InformationSection from './components/InformationSection';
 import { useResponsive } from './hooks/useResponsive';
@@ -56,6 +57,13 @@ function App() {
     // Verificar si hay cambios no guardados en búsqueda por residuos
     else if (currentSection === 'residuos' && window.residuosSearchCheckUnsavedChanges) {
       window.residuosSearchCheckUnsavedChanges(section, () => {
+        setCurrentSection(section);
+        console.log('Navegando a:', section);
+      });
+    }
+    // Verificar si hay cambios no guardados en árboles digitales
+    else if (currentSection === 'digitales' && window.digitalSearchCheckUnsavedChanges) {
+      window.digitalSearchCheckUnsavedChanges(section, () => {
         setCurrentSection(section);
         console.log('Navegando a:', section);
       });
@@ -142,6 +150,11 @@ function App() {
           />
         );
       case 'digitales':
+        return (
+          <DigitalSearchSection 
+            onNavigate={handleNavigate}
+          />
+        );
       case 'trie':
       case 'multiples':
       case 'huffman':
