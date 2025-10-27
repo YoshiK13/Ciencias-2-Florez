@@ -12,12 +12,11 @@ import {
 } from 'lucide-react';
 import '../styles/SequentialSearchSection.css';
 
-function DigitalSearchSection({ onNavigate }) {
+function HuffmanSearchSection({ onNavigate }) {
   // Estados para las operaciones
   const [simulationSpeed, setSimulationSpeed] = useState(3);
-  const [insertKey, setInsertKey] = useState('');
+  const [inputMessage, setInputMessage] = useState('');
   const [searchKey, setSearchKey] = useState('');
-  const [deleteKey, setDeleteKey] = useState('');
   
   // Estados de simulación
   const [isSimulating, setIsSimulating] = useState(false);
@@ -28,11 +27,11 @@ function DigitalSearchSection({ onNavigate }) {
   const [searchResult, setSearchResult] = useState(null); // Resultado de búsqueda
   
   // Estado para los datos de la estructura
-  const [keysData, setKeysData] = useState([]); // Array de objetos {key, ascii, binary}
-  const [treeStructure, setTreeStructure] = useState({}); // Árbol binario
+  const [keysData, setKeysData] = useState([]); // Array de objetos {key, frequency, huffmanCode}
+  const [treeStructure, setTreeStructure] = useState({}); // Árbol binario de Huffman
   const [structureSize, setStructureSize] = useState(20);
-  const [keySize, setKeySize] = useState(1); // Cambio a 1 para letras individuales
-  const [isStructureCreated, setIsStructureCreated] = useState(true); // Ahora siempre está creado
+  const [isStructureCreated, setIsStructureCreated] = useState(false);
+  const [originalMessage, setOriginalMessage] = useState(''); // Mensaje original codificado
   
   // Estados para mensajes informativos
   const [message, setMessage] = useState({ text: '', type: '' });
@@ -73,10 +72,10 @@ function DigitalSearchSection({ onNavigate }) {
 
   // Interceptar intentos de navegación del componente padre
   React.useEffect(() => {
-    window.digitalSearchCheckUnsavedChanges = checkForUnsavedChanges;
+    window.huffmanSearchCheckUnsavedChanges = checkForUnsavedChanges;
     
     return () => {
-      delete window.digitalSearchCheckUnsavedChanges;
+      delete window.huffmanSearchCheckUnsavedChanges;
     };
   }, [checkForUnsavedChanges]);
 
@@ -99,7 +98,15 @@ function DigitalSearchSection({ onNavigate }) {
     setMessage({ text, type });
   };
 
-  // Función para manejar entrada de solo letras
+  // Función para manejar entrada de mensaje (solo letras)
+  const handleMessageInput = (e) => {
+    const value = e.target.value;
+    // Solo permitir letras y convertir a mayúsculas
+    const letterValue = value.replace(/[^A-Za-z]/g, '').toUpperCase();
+    setInputMessage(letterValue);
+  };
+
+  // Función para manejar entrada de búsqueda (letra única)
   const handleLetterInput = (e, setter) => {
     const value = e.target.value;
     // Solo permitir letras y convertir a mayúsculas
@@ -107,16 +114,6 @@ function DigitalSearchSection({ onNavigate }) {
     // Limitar a 1 carácter
     const limitedValue = letterValue.slice(0, 1);
     setter(limitedValue);
-  };
-
-  // Función para convertir carácter a número (A=1, Z=26)
-  const charToNumber = (char) => {
-    return char.charCodeAt(0) - 64; // A=65 en ASCII, así que 65-64=1
-  };
-
-  // Función para convertir número a binario de 5 bits
-  const numberToBinary = (num) => {
-    return num.toString(2).padStart(5, '0');
   };
 
   // Función para marcar cambios no guardados
@@ -127,23 +124,23 @@ function DigitalSearchSection({ onNavigate }) {
   // Función para crear el objeto de datos para guardar
   const createSaveData = () => {
     return {
-      fileType: 'DBF', // Digital Binary File
+      fileType: 'HBF', // Huffman Binary File
       version: '1.0',
-      sectionType: 'digital-search',
-      sectionName: 'Árboles Digitales',
+      sectionType: 'huffman-search',
+      sectionName: 'Árboles de Huffman',
       timestamp: new Date().toISOString(),
       configuration: {
-        structureSize: structureSize,
-        keySize: keySize
+        structureSize: structureSize
       },
       data: {
         keysData: [...keysData],
         treeStructure: {...treeStructure},
-        isStructureCreated: isStructureCreated
+        isStructureCreated: isStructureCreated,
+        originalMessage: originalMessage
       },
       metadata: {
         elementsCount: keysData.length,
-        description: `Árbol digital con ${keysData.length} elementos`
+        description: `Árbol de Huffman con ${keysData.length} elementos`
       }
     };
   };
@@ -156,8 +153,8 @@ function DigitalSearchSection({ onNavigate }) {
     }
 
     const defaultName = currentFileName 
-      ? currentFileName.replace('.dbf', '')
-      : `busqueda-digital-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}`;
+      ? currentFileName.replace('.hbf', '')
+      : `busqueda-huffman-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}`;
 
     const dataToSave = createSaveData();
     const jsonString = JSON.stringify(dataToSave, null, 2);
@@ -166,11 +163,11 @@ function DigitalSearchSection({ onNavigate }) {
       // Intentar usar la File System Access API moderna si está disponible
       if ('showSaveFilePicker' in window) {
         const fileHandle = await window.showSaveFilePicker({
-          suggestedName: `${defaultName}.dbf`,
+          suggestedName: `${defaultName}.hbf`,
           types: [{
-            description: 'Archivos de Búsqueda Digital',
+            description: 'Archivos de Búsqueda de Huffman',
             accept: {
-              'application/json': ['.dbf']
+              'application/json': ['.hbf']
             }
           }]
         });
@@ -189,7 +186,7 @@ function DigitalSearchSection({ onNavigate }) {
           return; // Usuario canceló
         }
 
-        const finalFileName = fileName.endsWith('.dbf') ? fileName : `${fileName}.dbf`;
+        const finalFileName = fileName.endsWith('.hbf') ? fileName : `${fileName}.hbf`;
         const blob = new Blob([jsonString], { type: 'application/json' });
         
         // Crear enlace de descarga
@@ -227,9 +224,9 @@ function DigitalSearchSection({ onNavigate }) {
         if ('showOpenFilePicker' in window) {
           const [fileHandle] = await window.showOpenFilePicker({
             types: [{
-              description: 'Archivos de Búsqueda Digital',
+              description: 'Archivos de Búsqueda de Huffman',
               accept: {
-                'application/json': ['.dbf']
+                'application/json': ['.hbf']
               }
             }],
             multiple: false
@@ -242,7 +239,7 @@ function DigitalSearchSection({ onNavigate }) {
           // Fallback para navegadores que no soportan File System Access API
           const input = document.createElement('input');
           input.type = 'file';
-          input.accept = '.dbf';
+          input.accept = '.hbf';
           
           await new Promise((resolve) => {
             input.onchange = (e) => {
@@ -263,9 +260,9 @@ function DigitalSearchSection({ onNavigate }) {
           });
         }
 
-        if (!file || !fileName.endsWith('.dbf')) {
+        if (!file || !fileName.endsWith('.hbf')) {
           if (file) {
-            showMessage('Por favor seleccione un archivo .dbf válido', 'error');
+            showMessage('Por favor seleccione un archivo .hbf válido', 'error');
           }
           return;
         }
@@ -274,24 +271,24 @@ function DigitalSearchSection({ onNavigate }) {
         const loadedData = JSON.parse(content);
         
         // Validar formato del archivo
-        if (!loadedData.fileType || loadedData.fileType !== 'DBF') {
-          showMessage('Archivo no válido: no es un archivo DBF', 'error');
+        if (!loadedData.fileType || loadedData.fileType !== 'HBF') {
+          showMessage('Archivo no válido: no es un archivo HBF', 'error');
           return;
         }
 
-        if (!loadedData.sectionType || loadedData.sectionType !== 'digital-search') {
+        if (!loadedData.sectionType || loadedData.sectionType !== 'huffman-search') {
           showMessage('Este archivo pertenece a otra sección del simulador', 'error');
           return;
         }
 
         // Cargar configuración
         setStructureSize(loadedData.configuration.structureSize);
-        setKeySize(loadedData.configuration.keySize);
         
         // Cargar datos
         setKeysData(loadedData.data.keysData || []);
         setTreeStructure(loadedData.data.treeStructure || {});
-        setIsStructureCreated(loadedData.data.isStructureCreated || true);
+        setIsStructureCreated(loadedData.data.isStructureCreated || false);
+        setOriginalMessage(loadedData.data.originalMessage || '');
 
         // Limpiar historial y estados
         setHistory([]);
@@ -366,9 +363,9 @@ function DigitalSearchSection({ onNavigate }) {
       setKeysData([]);
       setTreeStructure({});
       setIsStructureCreated(false);
-      setInsertKey('');
+      setInputMessage('');
       setSearchKey('');
-      setDeleteKey('');
+      setOriginalMessage('');
       
       // Limpiar historial
       setHistory([]);
@@ -383,7 +380,7 @@ function DigitalSearchSection({ onNavigate }) {
       setHasUnsavedChanges(false);
       setCurrentFileName(null);
       
-      showMessage('Árbol limpiado. Puede crear una nueva estructura.', 'success');
+      showMessage('Árbol limpiado. Puede ingresar un nuevo mensaje.', 'success');
     };
 
     // Si hay cambios sin guardar, preguntar primero
@@ -392,16 +389,6 @@ function DigitalSearchSection({ onNavigate }) {
     } else {
       performNew();
     }
-  };
-
-  // Función para validar la clave (letra única)
-  const validateKey = (key) => {
-    // Verificar que sea solo una letra
-    if (!/^[A-Z]$/.test(key)) {
-      return { isValid: false, message: 'La clave debe ser una letra mayúscula' };
-    }
-    
-    return { isValid: true, message: '' };
   };
 
   // Función para agregar acción al historial
@@ -415,114 +402,164 @@ function DigitalSearchSection({ onNavigate }) {
     setHistoryIndex(newHistory.length - 1);
   };
 
-  // Función para insertar una clave en el árbol digital (método de colisión)
-  const insertIntoTree = (key, binaryCode, currentTree) => {
-    const newTree = { ...currentTree };
+  // Nodo para el algoritmo de Huffman
+  class HuffmanNode {
+    constructor(char, freq, left = null, right = null) {
+      this.char = char;
+      this.freq = freq;
+      this.left = left;
+      this.right = right;
+    }
+  }
+
+  // Función para construir el árbol de Huffman
+  const buildHuffmanTree = (messageText) => {
+    if (!messageText || messageText.length === 0) {
+      return null;
+    }
+
+    // 1. Calcular frecuencias de cada carácter
+    const freqMap = {};
+    for (const char of messageText) {
+      freqMap[char] = (freqMap[char] || 0) + 1;
+    }
+
+    // 2. Crear nodos hoja para cada carácter
+    const nodes = Object.keys(freqMap).map(char => 
+      new HuffmanNode(char, freqMap[char])
+    );
+
+    // 3. Construir el árbol de Huffman usando una cola de prioridad (min-heap)
+    while (nodes.length > 1) {
+      // Ordenar por frecuencia (menor primero)
+      nodes.sort((a, b) => a.freq - b.freq);
+      
+      // Tomar los dos nodos con menor frecuencia
+      const left = nodes.shift();
+      const right = nodes.shift();
+      
+      // Crear un nuevo nodo interno
+      const parent = new HuffmanNode(null, left.freq + right.freq, left, right);
+      
+      // Agregar el nodo padre de vuelta a la lista
+      nodes.push(parent);
+    }
+
+    return nodes[0]; // Raíz del árbol
+  };
+
+  // Función para generar los códigos de Huffman
+  const generateHuffmanCodes = (root, code = '', codes = {}) => {
+    if (!root) return codes;
+
+    // Si es un nodo hoja (tiene carácter)
+    if (root.char !== null) {
+      codes[root.char] = code || '0'; // Si solo hay un carácter, usar '0'
+      return codes;
+    }
+
+    // Recorrer hijo izquierdo con '0'
+    if (root.left) {
+      generateHuffmanCodes(root.left, code + '0', codes);
+    }
+
+    // Recorrer hijo derecho con '1'
+    if (root.right) {
+      generateHuffmanCodes(root.right, code + '1', codes);
+    }
+
+    return codes;
+  };
+
+  // Función para convertir el árbol de Huffman a estructura visualizable
+  const convertTreeToStructure = (node, path = '', level = 1) => {
+    const structure = {};
     
-    // Si el árbol está vacío, la primera clave va en la raíz
-    if (Object.keys(newTree).length === 0) {
-      newTree['root'] = {
-        key: key,
-        path: '',
-        level: 0
+    if (!node) return structure;
+
+    // Crear entrada para este nodo
+    if (path) {
+      structure[path] = {
+        bit: path[path.length - 1],
+        level: level,
+        path: path,
+        isLeaf: node.char !== null,
+        key: node.char,
+        frequency: node.freq
       };
-      return newTree;
     }
-    
-    // Si ya hay elementos, insertar según colisiones y código binario
-    let currentPath = '';
-    let currentNode = 'root';
-    let bitIndex = 0;
-    
-    // Navegar el árbol siguiendo el código binario hasta encontrar un lugar libre
-    while (newTree[currentNode] && newTree[currentNode].key !== null) {
-      // Hay colisión, seguir navegando según el bit actual
-      const bit = binaryCode[bitIndex];
-      const childPath = currentPath + bit;
-      const childNode = currentNode === 'root' ? bit : currentNode + '-' + bit;
-      
-      if (!newTree[childNode]) {
-        // Encontramos un espacio libre, insertar aquí
-        newTree[childNode] = {
-          key: key,
-          path: childPath,
-          level: bitIndex + 1,
-          bit: bit
-        };
-        
-        return newTree;
-      }
-      
-      // El nodo hijo existe, seguir navegando
-      currentPath = childPath;
-      currentNode = childNode;
-      bitIndex++;
-      
-      // Si llegamos al final del código binario (5 bits) y aún hay colisión
-      if (bitIndex >= 5) {
-        console.error('No se puede insertar: código binario agotado');
-        return currentTree;
-      }
+
+    // Recorrer hijos
+    if (node.left) {
+      const leftStructure = convertTreeToStructure(node.left, path + '0', level + 1);
+      Object.assign(structure, leftStructure);
     }
-    
-    return newTree;
+
+    if (node.right) {
+      const rightStructure = convertTreeToStructure(node.right, path + '1', level + 1);
+      Object.assign(structure, rightStructure);
+    }
+
+    return structure;
   };
 
-  // Función para construir árbol desde cero (sin depender del estado actual)
-  const buildTreeFromScratch = (keysArray) => {
-    let newTree = {};
-    
-    keysArray.forEach(item => {
-      newTree = insertIntoTree(item.key, item.binary, newTree);
-    });
-    
-    return newTree;
-  };
-
-  const handleInsert = () => {
-    if (!insertKey.trim()) return;
-
-    const key = insertKey.trim().toUpperCase();
-    
-    // Validar clave (letra única)
-    const validation = validateKey(key);
-    if (!validation.isValid) {
-      showMessage(validation.message, 'error');
+  // Función principal para codificar el mensaje
+  const handleEncodeMessage = () => {
+    if (!inputMessage.trim()) {
+      showMessage('Por favor ingrese un mensaje para codificar', 'error');
       return;
     }
 
-    // Verificar si la clave ya existe
-    if (keysData.some(item => item.key === key)) {
-      showMessage('No se aceptan claves repetidas', 'error');
-      return;
-    }
-
-    // Obtener número (A=1, Z=26) y binario de 5 bits
-    const number = charToNumber(key);
-    const binary = numberToBinary(number);
+    const messageText = inputMessage.trim().toUpperCase();
+    const totalChars = messageText.length;
 
     // Guardar estado anterior para el historial
     const previousKeysData = [...keysData];
     const previousTree = { ...treeStructure };
     
-    // Agregar a la tabla de claves
-    const newKeysData = [...keysData, { key, number, binary }];
+    // Construir árbol de Huffman
+    const huffmanRoot = buildHuffmanTree(messageText);
+    
+    if (!huffmanRoot) {
+      showMessage('Error al construir el árbol de Huffman', 'error');
+      return;
+    }
+
+    // Generar códigos de Huffman
+    const huffmanCodes = generateHuffmanCodes(huffmanRoot);
+
+    // Calcular frecuencias
+    const freqMap = {};
+    for (const char of messageText) {
+      freqMap[char] = (freqMap[char] || 0) + 1;
+    }
+
+    // Crear datos de la tabla
+    const newKeysData = Object.keys(freqMap)
+      .sort() // Ordenar alfabéticamente
+      .map(char => ({
+        key: char,
+        frequency: `${freqMap[char]}/${totalChars}`,
+        huffmanCode: huffmanCodes[char]
+      }));
+
     setKeysData(newKeysData);
 
-    // Insertar en el árbol
-    const newTree = insertIntoTree(key, binary, treeStructure);
+    // Convertir árbol a estructura visualizable
+    const newTree = convertTreeToStructure(huffmanRoot);
     setTreeStructure(newTree);
+    setIsStructureCreated(true);
+    setOriginalMessage(messageText);
     
     // Agregar al historial
     addToHistory({
-      type: 'insert',
-      key: key,
+      type: 'encode',
+      message: messageText,
       previousState: { keysData: previousKeysData, tree: previousTree },
       newState: { keysData: newKeysData, tree: newTree }
     });
 
-    showMessage(`Clave "${key}" insertada (Número: ${number}, Binario: ${binary})`, 'success');
-    setInsertKey('');
+    showMessage(`Mensaje "${messageText}" codificado exitosamente`, 'success');
     markAsChanged();
   };
 
@@ -531,10 +568,16 @@ function DigitalSearchSection({ onNavigate }) {
 
     const key = searchKey.trim().toUpperCase();
     
-    // Validar clave (letra única)
-    const validation = validateKey(key);
-    if (!validation.isValid) {
-      showMessage(validation.message, 'error');
+    // Validar que la clave sea una letra
+    if (!/^[A-Z]$/.test(key)) {
+      showMessage('La clave debe ser una letra mayúscula', 'error');
+      return;
+    }
+
+    // Verificar que la clave existe en el árbol
+    const keyData = keysData.find(item => item.key === key);
+    if (!keyData) {
+      showMessage(`La letra "${key}" no está en el mensaje codificado`, 'error');
       return;
     }
 
@@ -543,63 +586,35 @@ function DigitalSearchSection({ onNavigate }) {
     setCurrentSearchNode(null);
     setSearchResult(null);
 
-    // Obtener código binario de la clave
-    const number = charToNumber(key);
-    const binary = numberToBinary(number);
+    // Obtener código de Huffman de la clave
+    const huffmanCode = keyData.huffmanCode;
 
-    // Simular el recorrido del árbol siguiendo el método de colisión
-    let currentNode = 'root';
+    // Simular el recorrido del árbol bit por bit
     let currentPath = '';
-    const pathArray = ['root'];
-    let bitIndex = 0;
+    const pathArray = [];
     
-    showMessage(`Buscando "${key}" (Número: ${number}, Binario: ${binary})...`, 'info');
+    showMessage(`Buscando "${key}" (Código Huffman: ${huffmanCode})...`, 'info');
     
-    // Verificar si el árbol tiene elementos
-    if (!treeStructure['root']) {
-      setSearchResult('not-found');
-      showMessage(`Clave "${key}" no encontrada: árbol vacío`, 'error');
-      setIsSimulating(false);
+    // Recorrer cada bit del código de Huffman
+    for (let i = 0; i < huffmanCode.length; i++) {
+      const bit = huffmanCode[i];
+      currentPath += bit;
+      pathArray.push(currentPath);
       
-      setTimeout(() => {
-        setSearchPath([]);
-        setCurrentSearchNode(null);
-        setSearchResult(null);
-      }, 2000);
-      return;
-    }
-    
-    // Actualizar visualización inicial (raíz)
-    setSearchPath([...pathArray]);
-    setCurrentSearchNode(currentNode);
-    await new Promise(resolve => setTimeout(resolve, 800 / simulationSpeed));
-    
-    // Verificar si la clave está en la raíz
-    if (treeStructure[currentNode].key === key) {
-      setSearchResult('found');
-      showMessage(`¡Clave "${key}" encontrada en la raíz! (Número: ${number}, Binario: ${binary})`, 'success');
-      setIsSimulating(false);
+      // Actualizar visualización
+      setSearchPath([...pathArray]);
+      setCurrentSearchNode(currentPath);
       
-      setTimeout(() => {
-        setSearchPath([]);
-        setCurrentSearchNode(null);
-        setSearchResult(null);
-      }, 3000);
-      return;
-    }
-    
-    // Navegar el árbol siguiendo el código binario
-    while (bitIndex < 5) {
-      const bit = binary[bitIndex];
-      const childPath = currentPath + bit;
-      const childNode = currentNode === 'root' ? bit : currentNode + '-' + bit;
+      // Pausa para visualización
+      await new Promise(resolve => setTimeout(resolve, 800 / simulationSpeed));
       
-      // Verificar si el nodo hijo existe
-      if (!treeStructure[childNode]) {
+      // Verificar si el nodo existe
+      if (!treeStructure[currentPath]) {
         setSearchResult('not-found');
         showMessage(`Clave "${key}" no encontrada en el árbol`, 'error');
         setIsSimulating(false);
         
+        // Limpiar después de 2 segundos
         setTimeout(() => {
           setSearchPath([]);
           setCurrentSearchNode(null);
@@ -607,89 +622,26 @@ function DigitalSearchSection({ onNavigate }) {
         }, 2000);
         return;
       }
-      
-      // Actualizar visualización
-      pathArray.push(childNode);
-      setSearchPath([...pathArray]);
-      setCurrentSearchNode(childNode);
-      
-      // Pausa para visualización
-      await new Promise(resolve => setTimeout(resolve, 800 / simulationSpeed));
-      
-      // Verificar si encontramos la clave
-      if (treeStructure[childNode].key === key) {
-        setSearchResult('found');
-        showMessage(`¡Clave "${key}" encontrada! (Número: ${number}, Binario: ${binary})`, 'success');
-        setIsSimulating(false);
-        
-        setTimeout(() => {
-          setSearchPath([]);
-          setCurrentSearchNode(null);
-          setSearchResult(null);
-        }, 3000);
-        return;
-      }
-      
-      // Continuar navegando
-      currentPath = childPath;
-      currentNode = childNode;
-      bitIndex++;
     }
     
-    // Si llegamos aquí, no encontramos la clave
-    setSearchResult('not-found');
-    showMessage(`Clave "${key}" no se encuentra en el árbol`, 'error');
+    // Verificar si la clave está en el nodo final
+    const finalNode = treeStructure[currentPath];
+    if (finalNode && finalNode.isLeaf && finalNode.key === key) {
+      setSearchResult('found');
+      showMessage(`¡Clave "${key}" encontrada! (Código Huffman: ${huffmanCode}, Frecuencia: ${keyData.frequency})`, 'success');
+    } else {
+      setSearchResult('not-found');
+      showMessage(`Clave "${key}" no se encuentra en el árbol`, 'error');
+    }
+
     setIsSimulating(false);
     
+    // Limpiar después de 3 segundos
     setTimeout(() => {
       setSearchPath([]);
       setCurrentSearchNode(null);
       setSearchResult(null);
     }, 3000);
-  };
-
-  const handleDelete = () => {
-    if (!deleteKey.trim()) return;
-
-    const key = deleteKey.trim().toUpperCase();
-    
-    // Validar clave (letra única)
-    const validation = validateKey(key);
-    if (!validation.isValid) {
-      showMessage(validation.message, 'error');
-      return;
-    }
-
-    // Buscar la clave en la estructura
-    const keyIndex = keysData.findIndex(item => item.key === key);
-    if (keyIndex === -1) {
-      showMessage(`La clave "${key}" no se encuentra en el árbol`, 'error');
-      return;
-    }
-
-    // Guardar estado anterior para el historial
-    const previousKeysData = [...keysData];
-    const previousTree = { ...treeStructure };
-    
-    // Eliminar clave de la tabla
-    const newKeysData = keysData.filter(item => item.key !== key);
-    setKeysData(newKeysData);
-
-    // Reconstruir el árbol completamente desde cero sin esta clave
-    const newTree = buildTreeFromScratch(newKeysData);
-    setTreeStructure(newTree);
-    
-    // Agregar al historial
-    addToHistory({
-      type: 'delete',
-      key: key,
-      previousState: { keysData: previousKeysData, tree: previousTree },
-      newState: { keysData: newKeysData, tree: newTree }
-    });
-
-    showMessage(`Clave "${key}" eliminada del árbol`, 'success');
-    setDeleteKey('');
-    markAsChanged();
   };
 
   // Funciones de deshacer y rehacer
@@ -805,16 +757,16 @@ function DigitalSearchSection({ onNavigate }) {
       <div className="keys-structure-table">
         <div className="keys-table-header">
           <span className="header-col">Clave</span>
-          <span className="header-col">Número</span>
-          <span className="header-col">Código Binario (5 bits)</span>
+          <span className="header-col">Frecuencia</span>
+          <span className="header-col">Código Huffman</span>
         </div>
         
         <div className="keys-table-body">
           {keysData.map((item, index) => (
             <div key={index} className="keys-table-row">
               <span className="keys-cell key-cell">{item.key}</span>
-              <span className="keys-cell ascii-cell">{item.number}</span>
-              <span className="keys-cell binary-cell">{item.binary}</span>
+              <span className="keys-cell ascii-cell">{item.frequency}</span>
+              <span className="keys-cell binary-cell">{item.huffmanCode}</span>
             </div>
           ))}
         </div>
@@ -822,7 +774,7 @@ function DigitalSearchSection({ onNavigate }) {
     );
   };
 
-  // Función para renderizar el árbol digital con visualización gráfica
+  // Función para renderizar el árbol binario con visualización gráfica mejorada
   const renderBinaryTree = () => {
     if (Object.keys(treeStructure).length === 0) {
       return (
@@ -832,90 +784,122 @@ function DigitalSearchSection({ onNavigate }) {
       );
     }
 
-    // Obtener todos los nodos y organizarlos
-    const nodes = Object.entries(treeStructure).map(([id, node]) => ({
-      id,
-      ...node
-    }));
-
-    // Calcular dimensiones
-    const maxLevel = Math.max(...nodes.map(n => n.level));
-    const levelHeight = 120;
-    const nodeRadius = 30;
-    const svgHeight = (maxLevel + 1) * levelHeight + 100;
-    const nodeSpacing = 180;
-    
-    // Contar nodos por nivel para calcular el ancho
-    const nodesPerLevel = {};
-    nodes.forEach(node => {
-      nodesPerLevel[node.level] = (nodesPerLevel[node.level] || 0) + 1;
-    });
-    const maxNodesInLevel = Math.max(...Object.values(nodesPerLevel));
-    const svgWidth = Math.max(800, maxNodesInLevel * nodeSpacing + 200);
-    
-    // Asignar posiciones a los nodos
-    const nodePositions = {};
-    const levelCounters = {};
-    
-    // Ordenar nodos por nivel y luego por path
-    const sortedNodes = [...nodes].sort((a, b) => {
-      if (a.level !== b.level) return a.level - b.level;
-      return a.path.localeCompare(b.path);
-    });
-    
-    sortedNodes.forEach(node => {
-      const level = node.level;
-      if (!levelCounters[level]) levelCounters[level] = 0;
-      
-      const nodesInThisLevel = nodesPerLevel[level];
-      const totalWidth = (nodesInThisLevel - 1) * nodeSpacing;
-      const startX = (svgWidth - totalWidth) / 2;
-      
-      const x = startX + (levelCounters[level] * nodeSpacing);
-      const y = level * levelHeight + 50;
-      
-      nodePositions[node.id] = { x, y };
-      levelCounters[level]++;
-    });
-
-    // Crear aristas
-    const edges = [];
-    nodes.forEach(node => {
-      if (node.id === 'root') return;
-      
-      // Encontrar el padre basándonos en la estructura del ID
-      let parentId;
-      let currentBit;
-      
-      if (node.path.length === 1) {
-        // Si el path es de 1 bit, el padre es la raíz
-        parentId = 'root';
-        currentBit = node.path; // El bit es el path completo ('0' o '1')
-      } else {
-        // Si el path tiene más bits, el padre es el nodo con el path sin el último bit
-        const parentPath = node.path.slice(0, -1);
-        currentBit = node.path.slice(-1); // El último bit del path
-        
-        // Construir el ID del padre desde el path
-        if (parentPath.length === 1) {
-          parentId = parentPath;
-        } else {
-          parentId = parentPath.split('').join('-');
-        }
+    // Organizar nodos por nivel
+    const nodesByLevel = {};
+    Object.values(treeStructure).forEach(node => {
+      if (!nodesByLevel[node.level]) {
+        nodesByLevel[node.level] = [];
       }
+      nodesByLevel[node.level].push(node);
+    });
+
+    // Ordenar nodos en cada nivel por su path (orden binario)
+    Object.keys(nodesByLevel).forEach(level => {
+      nodesByLevel[level].sort((a, b) => {
+        // Comparar paths como strings binarios directamente
+        if (a.path < b.path) return -1;
+        if (a.path > b.path) return 1;
+        return 0;
+      });
+    });
+
+    // Calcular dimensiones del SVG
+    const maxLevel = Math.max(...Object.keys(nodesByLevel).map(Number));
+    const levelHeight = 100;
+    const nodeRadius = 25;
+    const svgHeight = (maxLevel + 1) * levelHeight + 100;
+    
+    // ======= ALGORITMO SIMPLE Y ROBUSTO DE POSICIONAMIENTO =======
+    
+    // Primero, asignar índices horizontales a todos los nodos hoja (nivel 8)
+    // Esto garantiza que todas las hojas estén espaciadas uniformemente
+    const leafNodes = nodesByLevel[maxLevel] || [];
+    const numLeaves = leafNodes.length;
+    
+    // Espaciado entre hojas - ajustado para mejor visualización al 100%
+    const minLeafSpacing = 150; // Espacio mínimo entre hojas
+    const totalLeafWidth = Math.max(numLeaves - 1, 0) * minLeafSpacing;
+    const svgWidth = Math.max(1200, totalLeafWidth + 400); // Canvas más compacto para mejor vista al 100%
+    
+    // Asignar posiciones X a las hojas primero
+    const nodePositions = new Map();
+    const leftMargin = (svgWidth - totalLeafWidth) / 2;
+    
+    leafNodes.forEach((node, index) => {
+      const x = leftMargin + (index * minLeafSpacing);
+      nodePositions.set(node.path, { x, level: node.level });
+    });
+
+    // Ahora calcular posiciones de nodos internos (niveles 1-7)
+    // La posición X de un nodo interno es el promedio de sus hijos
+    for (let level = maxLevel - 1; level >= 1; level--) {
+      const nodesInLevel = nodesByLevel[level] || [];
       
-      // Verificar que existan ambas posiciones antes de crear la arista
-      if (nodePositions[parentId] && nodePositions[node.id]) {
-        edges.push({
-          from: parentId,
-          to: node.id,
-          x1: nodePositions[parentId].x,
-          y1: nodePositions[parentId].y,
-          x2: nodePositions[node.id].x,
-          y2: nodePositions[node.id].y,
-          bit: currentBit,
-          isLeft: currentBit === '0'
+      nodesInLevel.forEach(node => {
+        // Encontrar los hijos de este nodo
+        const leftChildPath = node.path + '0';
+        const rightChildPath = node.path + '1';
+        
+        const leftChild = nodePositions.get(leftChildPath);
+        const rightChild = nodePositions.get(rightChildPath);
+        
+        let x;
+        if (leftChild && rightChild) {
+          // Si tiene ambos hijos, posicionar en el centro
+          x = (leftChild.x + rightChild.x) / 2;
+        } else if (leftChild) {
+          // Solo hijo izquierdo
+          x = leftChild.x;
+        } else if (rightChild) {
+          // Solo hijo derecho
+          x = rightChild.x;
+        } else {
+          // No tiene hijos (caso raro), centrar
+          x = svgWidth / 2;
+        }
+        
+        nodePositions.set(node.path, { x, level: node.level });
+      });
+    }
+    
+    // Crear estructura de nodos con posiciones finales
+    const nodesWithPositions = [];
+    Object.values(treeStructure).forEach(node => {
+      const position = nodePositions.get(node.path);
+      if (position) {
+        const y = node.level * levelHeight + 50;
+        nodesWithPositions.push({
+          ...node,
+          x: position.x,
+          y
         });
+      }
+    });
+
+    // Crear aristas mejoradas con información de dirección
+    const edges = [];
+    nodesWithPositions.forEach(node => {
+      if (node.level > 1) {
+        // Encontrar el nodo padre (path sin el último bit)
+        const parentPath = node.path.slice(0, -1);
+        const parent = nodesWithPositions.find(n => n.path === parentPath);
+        
+        if (parent) {
+          // Determinar si es hijo izquierdo (0) o derecho (1)
+          const isLeftChild = node.bit === '0';
+          
+          edges.push({
+            x1: parent.x,
+            y1: parent.y,
+            x2: node.x,
+            y2: node.y,
+            bit: node.bit,
+            isToLeaf: node.isLeaf,
+            isLeftChild: isLeftChild,
+            parentPath: parent.path,
+            childPath: node.path
+          });
+        }
       }
     });
 
@@ -923,7 +907,7 @@ function DigitalSearchSection({ onNavigate }) {
       <div className="binary-tree-visualization">
         <div className="tree-header">
           <div className="tree-title-section">
-            <h4>Árbol Digital Binario</h4>
+            <h4>Árbol de Huffman</h4>
             <div className="tree-controls">
               <button 
                 className="tree-control-btn"
@@ -937,8 +921,12 @@ function DigitalSearchSection({ onNavigate }) {
           </div>
           <div className="tree-legend">
             <div className="legend-item">
+              <div className="legend-circle connection-circle"></div>
+              <span>Nodo interno</span>
+            </div>
+            <div className="legend-item">
               <div className="legend-circle leaf-circle"></div>
-              <span>Nodo con clave</span>
+              <span>Nodo hoja (clave)</span>
             </div>
             <div className="legend-item">
               <svg width="40" height="20">
@@ -984,16 +972,19 @@ function DigitalSearchSection({ onNavigate }) {
           >
             {/* Definir gradientes y efectos */}
             <defs>
+              {/* Gradiente para aristas izquierdas (bit 0) */}
               <linearGradient id="leftEdgeGradient" x1="0%" y1="0%" x2="0%" y2="100%">
                 <stop offset="0%" stopColor="#4a90e2" stopOpacity="0.8" />
                 <stop offset="100%" stopColor="#4a90e2" stopOpacity="1" />
               </linearGradient>
               
+              {/* Gradiente para aristas derechas (bit 1) */}
               <linearGradient id="rightEdgeGradient" x1="0%" y1="0%" x2="0%" y2="100%">
                 <stop offset="0%" stopColor="#e24a4a" stopOpacity="0.8" />
                 <stop offset="100%" stopColor="#e24a4a" stopOpacity="1" />
               </linearGradient>
               
+              {/* Sombra para nodos */}
               <filter id="nodeShadow" x="-50%" y="-50%" width="200%" height="200%">
                 <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
                 <feOffset dx="0" dy="2" result="offsetblur"/>
@@ -1005,41 +996,75 @@ function DigitalSearchSection({ onNavigate }) {
                   <feMergeNode in="SourceGraphic"/>
                 </feMerge>
               </filter>
+              
+              {/* Flecha para indicar dirección */}
+              <marker
+                id="arrowLeft"
+                viewBox="0 0 10 10"
+                refX="8"
+                refY="5"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto-start-reverse"
+              >
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#4a90e2" />
+              </marker>
+              
+              <marker
+                id="arrowRight"
+                viewBox="0 0 10 10"
+                refX="8"
+                refY="5"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto-start-reverse"
+              >
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#e24a4a" />
+              </marker>
             </defs>
 
-            {/* Renderizar aristas */}
+            {/* Renderizar aristas con colores diferenciados y flechas */}
             {edges.map((edge, idx) => {
+              // Calcular punto medio para la etiqueta
               const midX = (edge.x1 + edge.x2) / 2;
               const midY = (edge.y1 + edge.y2) / 2;
-              const labelOffsetX = edge.isLeft ? -15 : 15;
+              
+              // Offset para la etiqueta (hacia el lado correspondiente)
+              const labelOffsetX = edge.isLeftChild ? -15 : 15;
               const labelOffsetY = -10;
               
-              const isInSearchPath = searchPath.includes(edge.to);
-              const isCurrentEdge = currentSearchNode === edge.to;
+              // Verificar si esta arista está en el camino de búsqueda
+              const isInSearchPath = searchPath.includes(edge.childPath);
+              const isCurrentEdge = currentSearchNode === edge.childPath;
               
-              let strokeColor = edge.isLeft ? "url(#leftEdgeGradient)" : "url(#rightEdgeGradient)";
-              let strokeWidth = "2.5";
+              // Color y grosor basados en el tipo de arista y búsqueda
+              let strokeColor = edge.isLeftChild ? "url(#leftEdgeGradient)" : "url(#rightEdgeGradient)";
+              let strokeWidth = edge.isToLeaf ? "3.5" : "2.5";
               
               if (isCurrentEdge) {
-                strokeColor = "#fbbf24";
+                strokeColor = "#fbbf24"; // Amarillo brillante para arista actual
                 strokeWidth = "5";
               } else if (isInSearchPath) {
-                strokeColor = "#10b981";
+                strokeColor = "#10b981"; // Verde para camino recorrido
                 strokeWidth = "4";
               }
               
+              const markerEnd = edge.isLeftChild ? "url(#arrowLeft)" : "url(#arrowRight)";
+              
               return (
                 <g key={`edge-${idx}`}>
+                  {/* Línea de fondo (más gruesa y clara para destacar) */}
                   <line
                     x1={edge.x1}
                     y1={edge.y1 + nodeRadius}
                     x2={edge.x2}
                     y2={edge.y2 - nodeRadius}
-                    stroke="#f0f0f0"
+                    stroke={isInSearchPath || isCurrentEdge ? "#f0f0f0" : "#f0f0f0"}
                     strokeWidth={parseFloat(strokeWidth) + 2}
                     strokeLinecap="round"
                   />
                   
+                  {/* Línea principal con color */}
                   <line
                     x1={edge.x1}
                     y1={edge.y1 + nodeRadius}
@@ -1048,20 +1073,29 @@ function DigitalSearchSection({ onNavigate }) {
                     stroke={strokeColor}
                     strokeWidth={strokeWidth}
                     strokeLinecap="round"
-                    style={{ transition: 'all 0.3s ease' }}
+                    markerEnd={markerEnd}
+                    className={`tree-edge ${edge.isToLeaf ? 'edge-to-leaf' : ''} ${isCurrentEdge ? 'search-active' : ''} ${isInSearchPath ? 'search-visited' : ''}`}
+                    style={{
+                      transition: 'all 0.3s ease'
+                    }}
                   />
                   
+                  {/* Etiqueta del bit con fondo */}
                   <g>
+                    {/* Círculo de fondo para la etiqueta */}
                     <circle
                       cx={midX + labelOffsetX}
                       cy={midY + labelOffsetY}
                       r="14"
                       fill={isCurrentEdge ? "#fef3c7" : "white"}
-                      stroke={isCurrentEdge ? "#fbbf24" : (isInSearchPath ? "#10b981" : (edge.isLeft ? "#4a90e2" : "#e24a4a"))}
+                      stroke={isCurrentEdge ? "#fbbf24" : (isInSearchPath ? "#10b981" : (edge.isLeftChild ? "#4a90e2" : "#e24a4a"))}
                       strokeWidth={isCurrentEdge || isInSearchPath ? "3" : "2"}
-                      style={{ transition: 'all 0.3s ease' }}
+                      style={{
+                        transition: 'all 0.3s ease'
+                      }}
                     />
                     
+                    {/* Texto del bit */}
                     <text
                       x={midX + labelOffsetX}
                       y={midY + labelOffsetY + 5}
@@ -1069,8 +1103,10 @@ function DigitalSearchSection({ onNavigate }) {
                       textAnchor="middle"
                       fontSize="15"
                       fontWeight="700"
-                      fill={isCurrentEdge ? "#92400e" : (isInSearchPath ? "#065f46" : (edge.isLeft ? "#2c5282" : "#742a2a"))}
-                      style={{ transition: 'all 0.3s ease' }}
+                      fill={isCurrentEdge ? "#92400e" : (isInSearchPath ? "#065f46" : (edge.isLeftChild ? "#2c5282" : "#742a2a"))}
+                      style={{
+                        transition: 'all 0.3s ease'
+                      }}
                     >
                       {edge.bit}
                     </text>
@@ -1079,59 +1115,64 @@ function DigitalSearchSection({ onNavigate }) {
               );
             })}
 
-            {/* Renderizar nodos */}
-            {nodes.map((node) => {
-              const pos = nodePositions[node.id];
-              if (!pos) return null;
+            {/* Renderizar nodos con sombras y mejores efectos */}
+            {nodesWithPositions.map((node, idx) => {
+              // Verificar si este nodo está en el camino de búsqueda
+              const isInSearchPath = searchPath.includes(node.path);
+              const isCurrentNode = currentSearchNode === node.path;
+              const isResultNode = searchResult && node.path === currentSearchNode;
               
-              const isInSearchPath = searchPath.includes(node.id);
-              const isCurrentNode = currentSearchNode === node.id;
-              const isResultNode = searchResult && node.id === currentSearchNode;
-              
-              let nodeFill = "#48bb78"; // Verde para todos los nodos
-              let nodeStroke = "#2c7a3d";
+              // Determinar colores basados en el estado de búsqueda
+              let nodeFill = node.isLeaf ? "#48bb78" : "#4a90e2";
+              let nodeStroke = node.isLeaf ? "#2c7a3d" : "#2c5282";
               let borderOpacity = "0.3";
               let strokeWidth = "3";
               
               if (isCurrentNode && !isResultNode) {
+                // Nodo actual durante la búsqueda (amarillo)
                 nodeFill = "#fbbf24";
                 nodeStroke = "#f59e0b";
                 borderOpacity = "0.5";
                 strokeWidth = "4";
               } else if (isResultNode && searchResult === 'found') {
+                // Nodo encontrado (verde brillante)
                 nodeFill = "#10b981";
                 nodeStroke = "#059669";
                 borderOpacity = "0.6";
                 strokeWidth = "5";
               } else if (isResultNode && searchResult === 'not-found') {
+                // Búsqueda fallida (rojo)
                 nodeFill = "#ef4444";
                 nodeStroke = "#dc2626";
                 borderOpacity = "0.6";
                 strokeWidth = "5";
               } else if (isInSearchPath) {
-                nodeFill = "#34d399"; // Verde claro para camino visitado
-                nodeStroke = "#10b981";
+                // Nodo visitado en el camino (verde suave)
+                nodeFill = node.isLeaf ? "#34d399" : "#60a5fa";
+                nodeStroke = node.isLeaf ? "#10b981" : "#3b82f6";
                 borderOpacity = "0.4";
                 strokeWidth = "3.5";
               }
               
               return (
-                <g key={`node-${node.id}`} className="tree-node-group" filter="url(#nodeShadow)">
+                <g key={`node-${idx}`} className="tree-node-group" filter="url(#nodeShadow)">
                   {/* Círculo exterior (borde) */}
                   <circle
-                    cx={pos.x}
-                    cy={pos.y}
+                    cx={node.x}
+                    cy={node.y}
                     r={nodeRadius + 2}
                     fill={nodeStroke}
                     opacity={borderOpacity}
-                    style={{ transition: 'all 0.3s ease' }}
+                    style={{
+                      transition: 'all 0.3s ease'
+                    }}
                   />
                   
                   {/* Efecto de pulso para nodo actual */}
                   {isCurrentNode && !isResultNode && (
                     <circle
-                      cx={pos.x}
-                      cy={pos.y}
+                      cx={node.x}
+                      cy={node.y}
                       r={nodeRadius + 8}
                       fill="none"
                       stroke="#fbbf24"
@@ -1157,32 +1198,64 @@ function DigitalSearchSection({ onNavigate }) {
                   
                   {/* Círculo del nodo */}
                   <circle
-                    cx={pos.x}
-                    cy={pos.y}
+                    cx={node.x}
+                    cy={node.y}
                     r={nodeRadius}
-                    className="tree-node-circle leaf-node-circle"
+                    className={`tree-node-circle ${node.isLeaf ? 'leaf-node-circle' : 'connection-node-circle'}`}
                     fill={nodeFill}
                     stroke={nodeStroke}
                     strokeWidth={strokeWidth}
-                    style={{ transition: 'all 0.3s ease' }}
-                  />
-                  
-                  {/* Texto del nodo - siempre muestra la letra */}
-                  <text
-                    x={pos.x}
-                    y={pos.y + 7}
-                    className="node-text-key"
-                    textAnchor="middle"
-                    fontSize="22"
-                    fontWeight="bold"
-                    fill="white"
-                    style={{ 
-                      textShadow: "1px 1px 2px rgba(0,0,0,0.5)",
+                    style={{
                       transition: 'all 0.3s ease'
                     }}
-                  >
-                    {node.key}
-                  </text>
+                  />
+                  
+                  {/* Texto del nodo - letra en nodos hoja, punto en nodos internos */}
+                  {node.isLeaf ? (
+                    <text
+                      x={node.x}
+                      y={node.y + 7}
+                      className="node-text-key"
+                      textAnchor="middle"
+                      fontSize="22"
+                      fontWeight="bold"
+                      fill="white"
+                      style={{ 
+                        textShadow: "1px 1px 2px rgba(0,0,0,0.5)",
+                        transition: 'all 0.3s ease'
+                      }}
+                    >
+                      {node.key}
+                    </text>
+                  ) : (
+                    <circle
+                      cx={node.x}
+                      cy={node.y}
+                      r="4"
+                      fill="white"
+                      style={{
+                        transition: 'all 0.3s ease'
+                      }}
+                    />
+                  )}
+                  
+                  {/* Mostrar el path binario debajo de nodos hoja */}
+                  {node.isLeaf && (
+                    <text
+                      x={node.x}
+                      y={node.y + nodeRadius + 18}
+                      textAnchor="middle"
+                      fontSize="11"
+                      fill={isInSearchPath || isCurrentNode ? "#059669" : "#555"}
+                      fontFamily="monospace"
+                      fontWeight={isInSearchPath || isCurrentNode ? "bold" : "normal"}
+                      style={{
+                        transition: 'all 0.3s ease'
+                      }}
+                    >
+                      {node.path}
+                    </text>
+                  )}
                 </g>
               );
             })}
@@ -1195,7 +1268,7 @@ function DigitalSearchSection({ onNavigate }) {
   return (
     <div className="sequential-search-section">
       <div className="section-header">
-        <h1>Árboles Digitales</h1>
+        <h1>Árboles de Huffman</h1>
       </div>
 
       {/* Sección de Archivo */}
@@ -1213,7 +1286,7 @@ function DigitalSearchSection({ onNavigate }) {
           <button 
             className="action-btn"
             onClick={handleLoad}
-            title="Cargar estructura desde archivo .dbf"
+            title="Cargar estructura desde archivo .hbf"
           >
             <FolderOpen size={18} />
             <span>Abrir</span>
@@ -1319,25 +1392,25 @@ function DigitalSearchSection({ onNavigate }) {
             </button>
           </div>
 
-          {/* Insertar Clave */}
+          {/* Codificar Mensaje */}
           <div className="control-group">
-            <label>Insertar Clave (Letra)</label>
+            <label>Mensaje a Codificar</label>
             <div className="input-with-button">
               <input
                 type="text"
-                value={insertKey}
-                onChange={(e) => handleLetterInput(e, setInsertKey)}
-                placeholder="Ej: A"
+                value={inputMessage}
+                onChange={handleMessageInput}
+                placeholder="Ej: ANA o MURCIELAGO"
                 className="operation-input"
-                maxLength={1}
+                style={{ flex: 1 }}
               />
               <button 
-                onClick={handleInsert}
+                onClick={handleEncodeMessage}
                 className="operation-btn insert-btn"
-                disabled={!insertKey.trim()}
+                disabled={!inputMessage.trim()}
               >
                 <Plus size={16} />
-                Insertar
+                Codificar
               </button>
             </div>
           </div>
@@ -1350,15 +1423,15 @@ function DigitalSearchSection({ onNavigate }) {
                 type="text"
                 value={searchKey}
                 onChange={(e) => handleLetterInput(e, setSearchKey)}
-                placeholder="Ej: B"
+                placeholder="Ej: A"
                 className="operation-input"
-                disabled={isSimulating}
+                disabled={isSimulating || !isStructureCreated}
                 maxLength={1}
               />
               <button 
                 onClick={handleSearch}
                 className="operation-btn search-btn"
-                disabled={!searchKey.trim() || isSimulating}
+                disabled={!searchKey.trim() || isSimulating || !isStructureCreated}
               >
                 {isSimulating ? (
                   <>
@@ -1375,33 +1448,15 @@ function DigitalSearchSection({ onNavigate }) {
             </div>
           </div>
 
-          {/* Borrar Clave */}
-          <div className="control-group">
-            <label>Borrar Clave (Letra)</label>
-            <div className="input-with-button">
-              <input
-                type="text"
-                value={deleteKey}
-                onChange={(e) => handleLetterInput(e, setDeleteKey)}
-                placeholder="Ej: C"
-                className="operation-input"
-                maxLength={1}
-              />
-              <button 
-                onClick={handleDelete}
-                className="operation-btn delete-btn"
-                disabled={!deleteKey.trim()}
-              >
-                <Trash2 size={16} />
-                Borrar
-              </button>
-            </div>
-          </div>
-
-          {/* Tabla de claves con ASCII y código binario - Ahora debajo de las opciones */}
+          {/* Tabla de claves con frecuencia y código Huffman */}
           {keysData.length > 0 && (
             <div className="keys-table-container">
-              <h4>Claves Insertadas</h4>
+              <h4>Claves del Mensaje</h4>
+              {originalMessage && (
+                <p style={{ fontSize: '13px', color: '#666', marginBottom: '10px' }}>
+                  Mensaje: <strong>{originalMessage}</strong>
+                </p>
+              )}
               {renderKeysTable()}
             </div>
           )}
@@ -1412,15 +1467,14 @@ function DigitalSearchSection({ onNavigate }) {
           <h3>Área de Simulación</h3>
           {keysData.length === 0 ? (
             <div className="empty-state">
-              <p>Empiece a agregar claves para visualizar el árbol</p>
+              <p>Ingrese un mensaje para codificarlo y visualizar el árbol de Huffman</p>
             </div>
           ) : (
             <div className="canvas-content">
               <div className="simulation-info">
-                <p><strong>Tipo de Clave:</strong> Letra (A-Z)</p>
-                <p><strong>Elementos:</strong> {keysData.length}</p>
-                <p><strong>Método:</strong> Árbol digital con código binario de 5 bits (A=1, Z=26)</p>
-                <p><strong>Inserción:</strong> Primera clave en raíz, siguientes por colisión y código binario</p>
+                <p><strong>Mensaje Original:</strong> {originalMessage}</p>
+                <p><strong>Caracteres Únicos:</strong> {keysData.length}</p>
+                <p><strong>Método:</strong> Codificación de Huffman</p>
               </div>
               
               {/* Visualización del árbol binario */}
@@ -1435,4 +1489,4 @@ function DigitalSearchSection({ onNavigate }) {
   );
 }
 
-export default DigitalSearchSection;
+export default HuffmanSearchSection;

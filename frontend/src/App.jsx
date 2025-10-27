@@ -13,6 +13,7 @@ import ResiduosSearchSection from './components/ResiduosSearchSection';
 import MultipleResiduosSearchSection from './components/MultipleResiduosSearchSection';
 import DigitalSearchSection from './components/DigitalSearchSection';
 import TrieSearchSection from './components/TrieSearchSection';
+import HuffmanSearchSection from './components/HuffmanSearchSection';
 import GrafosSection from './components/GrafosSection';
 import InformationSection from './components/InformationSection';
 import { useResponsive } from './hooks/useResponsive';
@@ -80,6 +81,13 @@ function App() {
     // Verificar si hay cambios no guardados en residuos múltiples
     else if (currentSection === 'multiples' && window.multipleResiduosSearchCheckUnsavedChanges) {
       window.multipleResiduosSearchCheckUnsavedChanges(section, () => {
+        setCurrentSection(section);
+        console.log('Navegando a:', section);
+      });
+    }
+    // Verificar si hay cambios no guardados en Huffman
+    else if (currentSection === 'huffman' && window.huffmanSearchCheckUnsavedChanges) {
+      window.huffmanSearchCheckUnsavedChanges(section, () => {
         setCurrentSection(section);
         console.log('Navegando a:', section);
       });
@@ -184,10 +192,8 @@ function App() {
           />
         );
       case 'huffman':
-        // Aquí podríamos mostrar páginas específicas para cada algoritmo
-        // Por ahora redirigimos a la sección correspondiente
         return (
-          <TreeSearchSection 
+          <HuffmanSearchSection 
             onNavigate={handleNavigate}
           />
         );

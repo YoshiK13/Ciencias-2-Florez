@@ -54,7 +54,6 @@ function ClassicSearchSection({ onNavigate }) {
           <IconComponent size={28} />
         </div>
         <h3>{method.name}</h3>
-        <p>{method.description}</p>
         <div className="method-complexity">
           <span className="complexity-label">Complejidad:</span>
           <span className="complexity-value">{method.complexity}</span>

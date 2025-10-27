@@ -18,7 +18,7 @@ function WelcomeSection({ onNavigate }) {
     {
       icon: Network,
       title: 'Grafos',
-      description: 'Explora algoritmos de grafos, recorridos, caminos más cortos y árboles de expansión.',
+      description: 'Crea distintos grafos y aplica distintas operaciones entre grafos',
       path: 'grafos'
     },
     {
