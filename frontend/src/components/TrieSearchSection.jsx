@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import '../styles/SequentialSearchSection.css';
 
-function DigitalSearchSection({ onNavigate }) {
+function TrieSearchSection({ onNavigate }) {
   // Estados para las operaciones
   const [simulationSpeed, setSimulationSpeed] = useState(3);
   const [insertKey, setInsertKey] = useState('');
@@ -73,10 +73,10 @@ function DigitalSearchSection({ onNavigate }) {
 
   // Interceptar intentos de navegación del componente padre
   React.useEffect(() => {
-    window.digitalSearchCheckUnsavedChanges = checkForUnsavedChanges;
+    window.trieSearchCheckUnsavedChanges = checkForUnsavedChanges;
     
     return () => {
-      delete window.digitalSearchCheckUnsavedChanges;
+      delete window.trieSearchCheckUnsavedChanges;
     };
   }, [checkForUnsavedChanges]);
 
@@ -109,9 +109,9 @@ function DigitalSearchSection({ onNavigate }) {
     setter(limitedValue);
   };
 
-  // Función para convertir carácter a número (A=1, Z=26)
+  // Función para convertir carácter a número (A=1, B=2, ..., Z=26)
   const charToNumber = (char) => {
-    return char.charCodeAt(0) - 64; // A=65 en ASCII, así que 65-64=1
+    return char.charCodeAt(0) - 64; // A=65, entonces 65-64=1
   };
 
   // Función para convertir número a binario de 5 bits
@@ -127,10 +127,10 @@ function DigitalSearchSection({ onNavigate }) {
   // Función para crear el objeto de datos para guardar
   const createSaveData = () => {
     return {
-      fileType: 'DBF', // Digital Binary File
+      fileType: 'TBF', // Trie Binary File
       version: '1.0',
-      sectionType: 'digital-search',
-      sectionName: 'Árboles Digitales',
+      sectionType: 'trie-search',
+      sectionName: 'Árboles Trie',
       timestamp: new Date().toISOString(),
       configuration: {
         structureSize: structureSize,
@@ -143,7 +143,7 @@ function DigitalSearchSection({ onNavigate }) {
       },
       metadata: {
         elementsCount: keysData.length,
-        description: `Árbol digital con ${keysData.length} elementos`
+        description: `Árbol Trie con ${keysData.length} elementos`
       }
     };
   };
@@ -156,8 +156,8 @@ function DigitalSearchSection({ onNavigate }) {
     }
 
     const defaultName = currentFileName 
-      ? currentFileName.replace('.dbf', '')
-      : `busqueda-digital-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}`;
+      ? currentFileName.replace('.tbf', '')
+      : `busqueda-trie-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}`;
 
     const dataToSave = createSaveData();
     const jsonString = JSON.stringify(dataToSave, null, 2);
@@ -166,11 +166,11 @@ function DigitalSearchSection({ onNavigate }) {
       // Intentar usar la File System Access API moderna si está disponible
       if ('showSaveFilePicker' in window) {
         const fileHandle = await window.showSaveFilePicker({
-          suggestedName: `${defaultName}.dbf`,
+          suggestedName: `${defaultName}.tbf`,
           types: [{
-            description: 'Archivos de Búsqueda Digital',
+            description: 'Archivos de Búsqueda Trie',
             accept: {
-              'application/json': ['.dbf']
+              'application/json': ['.tbf']
             }
           }]
         });
@@ -189,7 +189,7 @@ function DigitalSearchSection({ onNavigate }) {
           return; // Usuario canceló
         }
 
-        const finalFileName = fileName.endsWith('.dbf') ? fileName : `${fileName}.dbf`;
+        const finalFileName = fileName.endsWith('.tbf') ? fileName : `${fileName}.tbf`;
         const blob = new Blob([jsonString], { type: 'application/json' });
         
         // Crear enlace de descarga
@@ -227,9 +227,9 @@ function DigitalSearchSection({ onNavigate }) {
         if ('showOpenFilePicker' in window) {
           const [fileHandle] = await window.showOpenFilePicker({
             types: [{
-              description: 'Archivos de Búsqueda Digital',
+              description: 'Archivos de Búsqueda Trie',
               accept: {
-                'application/json': ['.dbf']
+                'application/json': ['.tbf']
               }
             }],
             multiple: false
@@ -242,7 +242,7 @@ function DigitalSearchSection({ onNavigate }) {
           // Fallback para navegadores que no soportan File System Access API
           const input = document.createElement('input');
           input.type = 'file';
-          input.accept = '.dbf';
+          input.accept = '.tbf';
           
           await new Promise((resolve) => {
             input.onchange = (e) => {
@@ -263,9 +263,9 @@ function DigitalSearchSection({ onNavigate }) {
           });
         }
 
-        if (!file || !fileName.endsWith('.dbf')) {
+        if (!file || !fileName.endsWith('.tbf')) {
           if (file) {
-            showMessage('Por favor seleccione un archivo .dbf válido', 'error');
+            showMessage('Por favor seleccione un archivo .tbf válido', 'error');
           }
           return;
         }
@@ -274,12 +274,12 @@ function DigitalSearchSection({ onNavigate }) {
         const loadedData = JSON.parse(content);
         
         // Validar formato del archivo
-        if (!loadedData.fileType || loadedData.fileType !== 'DBF') {
-          showMessage('Archivo no válido: no es un archivo DBF', 'error');
+        if (!loadedData.fileType || loadedData.fileType !== 'TBF') {
+          showMessage('Archivo no válido: no es un archivo TBF', 'error');
           return;
         }
 
-        if (!loadedData.sectionType || loadedData.sectionType !== 'digital-search') {
+        if (!loadedData.sectionType || loadedData.sectionType !== 'trie-search') {
           showMessage('Este archivo pertenece a otra sección del simulador', 'error');
           return;
         }
@@ -415,61 +415,122 @@ function DigitalSearchSection({ onNavigate }) {
     setHistoryIndex(newHistory.length - 1);
   };
 
-  // Función para insertar una clave en el árbol digital (método de colisión)
+  // Función para insertar una clave en el árbol Trie con manejo de colisiones
   const insertIntoTree = (key, binaryCode, currentTree) => {
     const newTree = { ...currentTree };
     
-    // Si el árbol está vacío, la primera clave va en la raíz
+    // Si el árbol está vacío, crear la raíz como nodo de enlace
     if (Object.keys(newTree).length === 0) {
       newTree['root'] = {
-        key: key,
-        path: '',
+        isLinkNode: true,
         level: 0,
-        isLeaf: true
+        path: '',
+        key: null
       };
-      return newTree;
     }
     
-    // Si ya hay elementos, insertar según colisiones y código binario
-    let currentPath = '';
-    let currentNode = 'root';
+    // Comenzar desde la raíz
+    let currentNodeId = 'root';
     let bitIndex = 0;
     
-    // Navegar el árbol siguiendo el código binario hasta encontrar un lugar libre
-    while (newTree[currentNode] && newTree[currentNode].key !== null) {
-      // Hay colisión, seguir navegando según el bit actual
+    // Navegar siguiendo el código binario
+    while (bitIndex < 5) {
       const bit = binaryCode[bitIndex];
-      const childPath = currentPath + bit;
-      const childNode = currentNode === 'root' ? bit : currentNode + '-' + bit;
+      const childId = currentNodeId === 'root' ? bit : `${currentNodeId}-${bit}`;
+      const childPath = newTree[currentNodeId].path + bit;
       
-      if (!newTree[childNode]) {
-        // Encontramos un espacio libre, insertar aquí
-        newTree[childNode] = {
-          key: key,
-          path: childPath,
+      // Si el hijo no existe, insertar la clave aquí
+      if (!newTree[childId]) {
+        newTree[childId] = {
+          isLinkNode: false,
           level: bitIndex + 1,
-          isLeaf: true,
+          path: childPath,
+          key: key,
           bit: bit
         };
+        return newTree;
+      }
+      
+      // Si el hijo existe y es un nodo de enlace, seguir navegando
+      if (newTree[childId].isLinkNode) {
+        currentNodeId = childId;
+        bitIndex++;
+        continue;
+      }
+      
+      // Si el hijo existe y tiene una clave (colisión)
+      if (newTree[childId].key !== null) {
+        const existingKey = newTree[childId].key;
+        const existingNumber = charToNumber(existingKey);
+        const existingBinary = numberToBinary(existingNumber);
         
-        // Si el nodo actual era hoja, convertirlo en nodo interno
-        if (newTree[currentNode].isLeaf) {
-          newTree[currentNode].isLeaf = false;
+        // Convertir el nodo con clave en nodo de enlace
+        newTree[childId] = {
+          isLinkNode: true,
+          level: newTree[childId].level,
+          path: newTree[childId].path,
+          key: null,
+          bit: newTree[childId].bit
+        };
+        
+        // Reinsertar la clave existente desde este nodo
+        let tempBitIndex = bitIndex + 1;
+        let tempNodeId = childId;
+        
+        // Navegar hasta encontrar diferencia entre las claves
+        while (tempBitIndex < 5 && existingBinary[tempBitIndex] === binaryCode[tempBitIndex]) {
+          const tempBit = existingBinary[tempBitIndex];
+          const tempChildId = `${tempNodeId}-${tempBit}`;
+          const tempPath = newTree[tempNodeId].path + tempBit;
+          
+          newTree[tempChildId] = {
+            isLinkNode: true,
+            level: tempBitIndex + 1,
+            path: tempPath,
+            key: null,
+            bit: tempBit
+          };
+          
+          tempNodeId = tempChildId;
+          tempBitIndex++;
+        }
+        
+        // Insertar la clave existente
+        if (tempBitIndex < 5) {
+          const existingBit = existingBinary[tempBitIndex];
+          const existingChildId = `${tempNodeId}-${existingBit}`;
+          const existingPath = newTree[tempNodeId].path + existingBit;
+          
+          newTree[existingChildId] = {
+            isLinkNode: false,
+            level: tempBitIndex + 1,
+            path: existingPath,
+            key: existingKey,
+            bit: existingBit
+          };
+          
+          // Insertar la nueva clave
+          const newBit = binaryCode[tempBitIndex];
+          const newChildId = `${tempNodeId}-${newBit}`;
+          const newPath = newTree[tempNodeId].path + newBit;
+          
+          newTree[newChildId] = {
+            isLinkNode: false,
+            level: tempBitIndex + 1,
+            path: newPath,
+            key: key,
+            bit: newBit
+          };
+        } else {
+          // Caso especial: claves idénticas (no debería pasar si validamos)
+          console.error('Claves idénticas detectadas');
         }
         
         return newTree;
       }
       
-      // El nodo hijo existe, seguir navegando
-      currentPath = childPath;
-      currentNode = childNode;
+      currentNodeId = childId;
       bitIndex++;
-      
-      // Si llegamos al final del código binario (5 bits) y aún hay colisión
-      if (bitIndex >= 5) {
-        console.error('No se puede insertar: código binario agotado');
-        return currentTree;
-      }
     }
     
     return newTree;
@@ -504,7 +565,7 @@ function DigitalSearchSection({ onNavigate }) {
       return;
     }
 
-    // Obtener número (A=1, Z=26) y binario de 5 bits
+    // Obtener número y código binario
     const number = charToNumber(key);
     const binary = numberToBinary(number);
 
@@ -554,9 +615,8 @@ function DigitalSearchSection({ onNavigate }) {
     const number = charToNumber(key);
     const binary = numberToBinary(number);
 
-    // Simular el recorrido del árbol siguiendo el método de colisión
-    let currentNode = 'root';
-    let currentPath = '';
+    // Simular el recorrido del árbol siguiendo el método Trie
+    let currentNodeId = 'root';
     const pathArray = ['root'];
     let bitIndex = 0;
     
@@ -578,31 +638,16 @@ function DigitalSearchSection({ onNavigate }) {
     
     // Actualizar visualización inicial (raíz)
     setSearchPath([...pathArray]);
-    setCurrentSearchNode(currentNode);
+    setCurrentSearchNode(currentNodeId);
     await new Promise(resolve => setTimeout(resolve, 800 / simulationSpeed));
-    
-    // Verificar si la clave está en la raíz
-    if (treeStructure[currentNode].key === key) {
-      setSearchResult('found');
-      showMessage(`¡Clave "${key}" encontrada en la raíz! (Número: ${number}, Binario: ${binary})`, 'success');
-      setIsSimulating(false);
-      
-      setTimeout(() => {
-        setSearchPath([]);
-        setCurrentSearchNode(null);
-        setSearchResult(null);
-      }, 3000);
-      return;
-    }
     
     // Navegar el árbol siguiendo el código binario
     while (bitIndex < 5) {
       const bit = binary[bitIndex];
-      const childPath = currentPath + bit;
-      const childNode = currentNode === 'root' ? bit : currentNode + '-' + bit;
+      const childId = currentNodeId === 'root' ? bit : `${currentNodeId}-${bit}`;
       
       // Verificar si el nodo hijo existe
-      if (!treeStructure[childNode]) {
+      if (!treeStructure[childId]) {
         setSearchResult('not-found');
         showMessage(`Clave "${key}" no encontrada en el árbol`, 'error');
         setIsSimulating(false);
@@ -616,15 +661,15 @@ function DigitalSearchSection({ onNavigate }) {
       }
       
       // Actualizar visualización
-      pathArray.push(childNode);
+      pathArray.push(childId);
       setSearchPath([...pathArray]);
-      setCurrentSearchNode(childNode);
+      setCurrentSearchNode(childId);
       
       // Pausa para visualización
       await new Promise(resolve => setTimeout(resolve, 800 / simulationSpeed));
       
       // Verificar si encontramos la clave
-      if (treeStructure[childNode].key === key) {
+      if (treeStructure[childId].key === key) {
         setSearchResult('found');
         showMessage(`¡Clave "${key}" encontrada! (Número: ${number}, Binario: ${binary})`, 'success');
         setIsSimulating(false);
@@ -637,10 +682,23 @@ function DigitalSearchSection({ onNavigate }) {
         return;
       }
       
-      // Continuar navegando
-      currentPath = childPath;
-      currentNode = childNode;
-      bitIndex++;
+      // Si es un nodo de enlace, continuar navegando
+      if (treeStructure[childId].isLinkNode) {
+        currentNodeId = childId;
+        bitIndex++;
+      } else {
+        // Si no es nodo de enlace y no tiene la clave, no está
+        setSearchResult('not-found');
+        showMessage(`Clave "${key}" no se encuentra en el árbol`, 'error');
+        setIsSimulating(false);
+        
+        setTimeout(() => {
+          setSearchPath([]);
+          setCurrentSearchNode(null);
+          setSearchResult(null);
+        }, 3000);
+        return;
+      }
     }
     
     // Si llegamos aquí, no encontramos la clave
@@ -813,7 +871,7 @@ function DigitalSearchSection({ onNavigate }) {
         <div className="keys-table-header">
           <span className="header-col">Clave</span>
           <span className="header-col">Número</span>
-          <span className="header-col">Código Binario (5 bits)</span>
+          <span className="header-col">Código Binario</span>
         </div>
         
         <div className="keys-table-body">
@@ -829,7 +887,7 @@ function DigitalSearchSection({ onNavigate }) {
     );
   };
 
-  // Función para renderizar el árbol digital con visualización gráfica
+  // Función para renderizar el árbol Trie con visualización gráfica
   const renderBinaryTree = () => {
     if (Object.keys(treeStructure).length === 0) {
       return (
@@ -930,7 +988,7 @@ function DigitalSearchSection({ onNavigate }) {
       <div className="binary-tree-visualization">
         <div className="tree-header">
           <div className="tree-title-section">
-            <h4>Árbol Digital Binario</h4>
+            <h4>Árbol Trie</h4>
             <div className="tree-controls">
               <button 
                 className="tree-control-btn"
@@ -944,8 +1002,12 @@ function DigitalSearchSection({ onNavigate }) {
           </div>
           <div className="tree-legend">
             <div className="legend-item">
+              <div className="legend-circle connection-circle"></div>
+              <span>Nodo de enlace</span>
+            </div>
+            <div className="legend-item">
               <div className="legend-circle leaf-circle"></div>
-              <span>Nodo</span>
+              <span>Nodo con clave</span>
             </div>
             <div className="legend-item">
               <svg width="40" height="20">
@@ -991,16 +1053,19 @@ function DigitalSearchSection({ onNavigate }) {
           >
             {/* Definir gradientes y efectos */}
             <defs>
+              {/* Gradiente para aristas izquierdas (bit 0) */}
               <linearGradient id="leftEdgeGradient" x1="0%" y1="0%" x2="0%" y2="100%">
                 <stop offset="0%" stopColor="#4a90e2" stopOpacity="0.8" />
                 <stop offset="100%" stopColor="#4a90e2" stopOpacity="1" />
               </linearGradient>
               
+              {/* Gradiente para aristas derechas (bit 1) */}
               <linearGradient id="rightEdgeGradient" x1="0%" y1="0%" x2="0%" y2="100%">
                 <stop offset="0%" stopColor="#e24a4a" stopOpacity="0.8" />
                 <stop offset="100%" stopColor="#e24a4a" stopOpacity="1" />
               </linearGradient>
               
+              {/* Sombra para nodos */}
               <filter id="nodeShadow" x="-50%" y="-50%" width="200%" height="200%">
                 <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
                 <feOffset dx="0" dy="2" result="offsetblur"/>
@@ -1012,31 +1077,62 @@ function DigitalSearchSection({ onNavigate }) {
                   <feMergeNode in="SourceGraphic"/>
                 </feMerge>
               </filter>
+              
+              {/* Flecha para indicar dirección */}
+              <marker
+                id="arrowLeft"
+                viewBox="0 0 10 10"
+                refX="8"
+                refY="5"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto-start-reverse"
+              >
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#4a90e2" />
+              </marker>
+              
+              <marker
+                id="arrowRight"
+                viewBox="0 0 10 10"
+                refX="8"
+                refY="5"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto-start-reverse"
+              >
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#e24a4a" />
+              </marker>
             </defs>
 
-            {/* Renderizar aristas */}
+            {/* Renderizar aristas con colores diferenciados */}
             {edges.map((edge, idx) => {
+              // Calcular punto medio para la etiqueta
               const midX = (edge.x1 + edge.x2) / 2;
               const midY = (edge.y1 + edge.y2) / 2;
+              
+              // Offset para la etiqueta (hacia el lado correspondiente)
               const labelOffsetX = edge.isLeft ? -15 : 15;
               const labelOffsetY = -10;
               
+              // Verificar si esta arista está en el camino de búsqueda
               const isInSearchPath = searchPath.includes(edge.to);
               const isCurrentEdge = currentSearchNode === edge.to;
               
+              // Color y grosor basados en el tipo de arista y búsqueda
               let strokeColor = edge.isLeft ? "url(#leftEdgeGradient)" : "url(#rightEdgeGradient)";
               let strokeWidth = "2.5";
               
               if (isCurrentEdge) {
-                strokeColor = "#fbbf24";
+                strokeColor = "#fbbf24"; // Amarillo brillante para arista actual
                 strokeWidth = "5";
               } else if (isInSearchPath) {
-                strokeColor = "#10b981";
+                strokeColor = "#10b981"; // Verde para camino recorrido
                 strokeWidth = "4";
               }
               
               return (
                 <g key={`edge-${idx}`}>
+                  {/* Línea de fondo (más gruesa y clara para destacar) */}
                   <line
                     x1={edge.x1}
                     y1={edge.y1 + nodeRadius}
@@ -1047,6 +1143,7 @@ function DigitalSearchSection({ onNavigate }) {
                     strokeLinecap="round"
                   />
                   
+                  {/* Línea principal con color */}
                   <line
                     x1={edge.x1}
                     y1={edge.y1 + nodeRadius}
@@ -1058,7 +1155,9 @@ function DigitalSearchSection({ onNavigate }) {
                     style={{ transition: 'all 0.3s ease' }}
                   />
                   
+                  {/* Etiqueta del bit con fondo */}
                   <g>
+                    {/* Círculo de fondo para la etiqueta */}
                     <circle
                       cx={midX + labelOffsetX}
                       cy={midY + labelOffsetY}
@@ -1069,6 +1168,7 @@ function DigitalSearchSection({ onNavigate }) {
                       style={{ transition: 'all 0.3s ease' }}
                     />
                     
+                    {/* Texto del bit */}
                     <text
                       x={midX + labelOffsetX}
                       y={midY + labelOffsetY + 5}
@@ -1091,12 +1191,14 @@ function DigitalSearchSection({ onNavigate }) {
               const pos = nodePositions[node.id];
               if (!pos) return null;
               
+              // Verificar si este nodo está en el camino de búsqueda
               const isInSearchPath = searchPath.includes(node.id);
               const isCurrentNode = currentSearchNode === node.id;
               const isResultNode = searchResult && node.id === currentSearchNode;
               
-              let nodeFill = node.isLeaf ? "#48bb78" : "#4a90e2";
-              let nodeStroke = node.isLeaf ? "#2c7a3d" : "#2c5282";
+              // Determinar colores basados en el estado de búsqueda y tipo de nodo
+              let nodeFill = node.isLinkNode ? "#4a90e2" : "#48bb78";
+              let nodeStroke = node.isLinkNode ? "#2c5282" : "#2c7a3d";
               let borderOpacity = "0.3";
               let strokeWidth = "3";
               
@@ -1116,23 +1218,37 @@ function DigitalSearchSection({ onNavigate }) {
                 borderOpacity = "0.6";
                 strokeWidth = "5";
               } else if (isInSearchPath) {
-                nodeFill = node.isLeaf ? "#34d399" : "#60a5fa";
-                nodeStroke = node.isLeaf ? "#10b981" : "#3b82f6";
+                nodeFill = node.isLinkNode ? "#60a5fa" : "#34d399";
+                nodeStroke = node.isLinkNode ? "#3b82f6" : "#10b981";
                 borderOpacity = "0.4";
                 strokeWidth = "3.5";
               }
               
               return (
                 <g key={`node-${node.id}`} className="tree-node-group" filter="url(#nodeShadow)">
-                  {/* Círculo exterior (borde) */}
-                  <circle
-                    cx={pos.x}
-                    cy={pos.y}
-                    r={nodeRadius + 2}
-                    fill={nodeStroke}
-                    opacity={borderOpacity}
-                    style={{ transition: 'all 0.3s ease' }}
-                  />
+                  {/* Borde exterior - cuadrado para claves, círculo para enlaces */}
+                  {!node.isLinkNode ? (
+                    <rect
+                      x={pos.x - nodeRadius - 2}
+                      y={pos.y - nodeRadius - 2}
+                      width={(nodeRadius + 2) * 2}
+                      height={(nodeRadius + 2) * 2}
+                      fill={nodeStroke}
+                      opacity={borderOpacity}
+                      rx="4"
+                      ry="4"
+                      style={{ transition: 'all 0.3s ease' }}
+                    />
+                  ) : (
+                    <circle
+                      cx={pos.x}
+                      cy={pos.y}
+                      r={nodeRadius + 2}
+                      fill={nodeStroke}
+                      opacity={borderOpacity}
+                      style={{ transition: 'all 0.3s ease' }}
+                    />
+                  )}
                   
                   {/* Efecto de pulso para nodo actual */}
                   {isCurrentNode && !isResultNode && (
@@ -1162,43 +1278,64 @@ function DigitalSearchSection({ onNavigate }) {
                     </circle>
                   )}
                   
-                  {/* Círculo del nodo */}
-                  <circle
-                    cx={pos.x}
-                    cy={pos.y}
-                    r={nodeRadius}
-                    className={`tree-node-circle ${node.isLeaf ? 'leaf-node-circle' : 'connection-node-circle'}`}
-                    fill={nodeFill}
-                    stroke={nodeStroke}
-                    strokeWidth={strokeWidth}
-                    style={{ transition: 'all 0.3s ease' }}
-                  />
-                  
-                  {/* Texto del nodo - letra en nodos hoja, punto en nodos internos */}
-                  {node.isLeaf ? (
-                    <text
-                      x={pos.x}
-                      y={pos.y + 7}
-                      className="node-text-key"
-                      textAnchor="middle"
-                      fontSize="22"
-                      fontWeight="bold"
-                      fill="white"
-                      style={{ 
-                        textShadow: "1px 1px 2px rgba(0,0,0,0.5)",
-                        transition: 'all 0.3s ease'
-                      }}
-                    >
-                      {node.key}
-                    </text>
+                  {/* Nodo - cuadrado para claves, círculo para enlaces */}
+                  {!node.isLinkNode ? (
+                    <>
+                      {/* Cuadrado para nodos con clave */}
+                      <rect
+                        x={pos.x - nodeRadius}
+                        y={pos.y - nodeRadius}
+                        width={nodeRadius * 2}
+                        height={nodeRadius * 2}
+                        className={`tree-node-square leaf-node-circle`}
+                        fill={nodeFill}
+                        stroke={nodeStroke}
+                        strokeWidth={strokeWidth}
+                        rx="4"
+                        ry="4"
+                        style={{ transition: 'all 0.3s ease' }}
+                      />
+                      
+                      {/* Texto de la clave */}
+                      <text
+                        x={pos.x}
+                        y={pos.y + 7}
+                        className="node-text-key"
+                        textAnchor="middle"
+                        fontSize="22"
+                        fontWeight="bold"
+                        fill="white"
+                        style={{ 
+                          textShadow: "1px 1px 2px rgba(0,0,0,0.5)",
+                          transition: 'all 0.3s ease'
+                        }}
+                      >
+                        {node.key}
+                      </text>
+                    </>
                   ) : (
-                    <circle
-                      cx={pos.x}
-                      cy={pos.y}
-                      r="4"
-                      fill="white"
-                      style={{ transition: 'all 0.3s ease' }}
-                    />
+                    <>
+                      {/* Círculo para nodos enlace */}
+                      <circle
+                        cx={pos.x}
+                        cy={pos.y}
+                        r={nodeRadius}
+                        className={`tree-node-circle connection-node-circle`}
+                        fill={nodeFill}
+                        stroke={nodeStroke}
+                        strokeWidth={strokeWidth}
+                        style={{ transition: 'all 0.3s ease' }}
+                      />
+                      
+                      {/* Punto blanco para nodos enlace */}
+                      <circle
+                        cx={pos.x}
+                        cy={pos.y}
+                        r="4"
+                        fill="white"
+                        style={{ transition: 'all 0.3s ease' }}
+                      />
+                    </>
                   )}
                 </g>
               );
@@ -1212,7 +1349,7 @@ function DigitalSearchSection({ onNavigate }) {
   return (
     <div className="sequential-search-section">
       <div className="section-header">
-        <h1>Árboles Digitales</h1>
+        <h1>Árboles Trie</h1>
       </div>
 
       {/* Sección de Archivo */}
@@ -1230,7 +1367,7 @@ function DigitalSearchSection({ onNavigate }) {
           <button 
             className="action-btn"
             onClick={handleLoad}
-            title="Cargar estructura desde archivo .dbf"
+            title="Cargar estructura desde archivo .tbf"
           >
             <FolderOpen size={18} />
             <span>Abrir</span>
@@ -1436,8 +1573,7 @@ function DigitalSearchSection({ onNavigate }) {
               <div className="simulation-info">
                 <p><strong>Tipo de Clave:</strong> Letra (A-Z)</p>
                 <p><strong>Elementos:</strong> {keysData.length}</p>
-                <p><strong>Método:</strong> Árbol digital con código binario de 5 bits (A=1, Z=26)</p>
-                <p><strong>Inserción:</strong> Primera clave en raíz, siguientes por colisión y código binario</p>
+                <p><strong>Método:</strong> Árbol Trie con resolución de colisiones (A=1-Z=26, 5 bits)</p>
               </div>
               
               {/* Visualización del árbol binario */}
@@ -1452,4 +1588,4 @@ function DigitalSearchSection({ onNavigate }) {
   );
 }
 
-export default DigitalSearchSection;
+export default TrieSearchSection;

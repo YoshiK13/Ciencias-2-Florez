@@ -11,6 +11,7 @@ import BinarySearchSection from './components/BinarySearchSection';
 import HashFunctionSection from './components/HashFunctionSection';
 import ResiduosSearchSection from './components/ResiduosSearchSection';
 import DigitalSearchSection from './components/DigitalSearchSection';
+import TrieSearchSection from './components/TrieSearchSection';
 import GrafosSection from './components/GrafosSection';
 import InformationSection from './components/InformationSection';
 import { useResponsive } from './hooks/useResponsive';
@@ -64,6 +65,13 @@ function App() {
     // Verificar si hay cambios no guardados en árboles digitales
     else if (currentSection === 'digitales' && window.digitalSearchCheckUnsavedChanges) {
       window.digitalSearchCheckUnsavedChanges(section, () => {
+        setCurrentSection(section);
+        console.log('Navegando a:', section);
+      });
+    }
+    // Verificar si hay cambios no guardados en árboles trie
+    else if (currentSection === 'trie' && window.trieSearchCheckUnsavedChanges) {
+      window.trieSearchCheckUnsavedChanges(section, () => {
         setCurrentSection(section);
         console.log('Navegando a:', section);
       });
@@ -156,6 +164,11 @@ function App() {
           />
         );
       case 'trie':
+        return (
+          <TrieSearchSection 
+            onNavigate={handleNavigate}
+          />
+        );
       case 'multiples':
       case 'huffman':
         // Aquí podríamos mostrar páginas específicas para cada algoritmo
