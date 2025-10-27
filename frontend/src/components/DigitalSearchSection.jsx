@@ -840,42 +840,138 @@ function DigitalSearchSection({ onNavigate }) {
 
     // Calcular dimensiones
     const maxLevel = Math.max(...nodes.map(n => n.level));
-    const levelHeight = 120;
+    const levelHeight = 100;
     const nodeRadius = 30;
     const svgHeight = (maxLevel + 1) * levelHeight + 100;
-    const nodeSpacing = 180;
     
-    // Contar nodos por nivel para calcular el ancho
-    const nodesPerLevel = {};
-    nodes.forEach(node => {
-      nodesPerLevel[node.level] = (nodesPerLevel[node.level] || 0) + 1;
-    });
-    const maxNodesInLevel = Math.max(...Object.values(nodesPerLevel));
-    const svgWidth = Math.max(800, maxNodesInLevel * nodeSpacing + 200);
+    // ======= ALGORITMO: POSICIONAMIENTO POR SUBTREE WIDTH =======
+    // Sistema que calcula el ancho de cada subárbol recursivamente
     
-    // Asignar posiciones a los nodos
+    const MIN_HORIZONTAL_SPACING = 100; // Espacio mínimo entre nodos hermanos
+    
+    // Clase para almacenar información de ancho de subárbol
+    class TreeNode {
+      constructor(data, id) {
+        this.data = data;
+        this.id = id;
+        this.left = null;
+        this.right = null;
+        this.width = 1; // Ancho en "unidades" (hojas)
+        this.x = 0;
+        this.y = 0;
+      }
+    }
+    
+    // Construir árbol de objetos TreeNode desde treeStructure
+    const buildTreeObjects = (nodeId) => {
+      const nodeData = treeStructure[nodeId];
+      if (!nodeData) return null;
+      
+      const node = new TreeNode(nodeData, nodeId);
+      
+      // Calcular IDs de hijos según la estructura
+      let leftId, rightId;
+      if (nodeId === 'root') {
+        leftId = '0';
+        rightId = '1';
+      } else {
+        // Para nodos como '0', '1', '0-0', etc.
+        leftId = nodeId + '-0';
+        rightId = nodeId + '-1';
+      }
+      
+      node.left = buildTreeObjects(leftId);
+      node.right = buildTreeObjects(rightId);
+      
+      return node;
+    };
+    
+    // Calcular el ancho de cada subárbol (número de hojas o nodos terminales)
+    const calculateSubtreeWidth = (node) => {
+      if (!node) return 0;
+      
+      // Si no tiene hijos, su ancho es 1
+      if (!node.left && !node.right) {
+        node.width = 1;
+        return 1;
+      }
+      
+      // Si es nodo interno, su ancho es la suma de los anchos de sus hijos
+      const leftWidth = calculateSubtreeWidth(node.left);
+      const rightWidth = calculateSubtreeWidth(node.right);
+      
+      node.width = Math.max(1, leftWidth + rightWidth);
+      return node.width;
+    };
+    
+    // Asignar posiciones X basadas en el ancho de subárboles
+    const assignPositions = (node, startX = 0) => {
+      if (!node) return;
+      
+      // Si no tiene hijos (nodo terminal con letra o sin letra)
+      if (!node.left && !node.right) {
+        node.x = startX * MIN_HORIZONTAL_SPACING;
+        node.y = node.data.level * levelHeight + 50;
+      } else {
+        // Nodo interno: calcular posiciones de hijos primero
+        const leftWidth = node.left ? node.left.width : 0;
+        
+        // Hijo izquierdo comienza en startX
+        if (node.left) {
+          assignPositions(node.left, startX);
+        }
+        
+        // Hijo derecho comienza después del subárbol izquierdo
+        if (node.right) {
+          assignPositions(node.right, startX + leftWidth);
+        }
+        
+        // Nodo interno: en el centro de sus hijos
+        const leftX = node.left ? node.left.x : startX * MIN_HORIZONTAL_SPACING;
+        const rightX = node.right ? node.right.x : startX * MIN_HORIZONTAL_SPACING;
+        
+        node.x = (leftX + rightX) / 2;
+        node.y = node.data.level * levelHeight + 50;
+      }
+    };
+    
+    // Extraer posiciones en un objeto
+    const extractPositions = (node, posMap = {}) => {
+      if (!node) return posMap;
+      
+      posMap[node.id] = { x: node.x, y: node.y };
+      
+      extractPositions(node.left, posMap);
+      extractPositions(node.right, posMap);
+      
+      return posMap;
+    };
+    
+    // Ejecutar el algoritmo desde la raíz
+    const rootNode = buildTreeObjects('root');
+    
     const nodePositions = {};
-    const levelCounters = {};
     
-    // Ordenar nodos por nivel y luego por path
-    const sortedNodes = [...nodes].sort((a, b) => {
-      if (a.level !== b.level) return a.level - b.level;
-      return a.path.localeCompare(b.path);
+    if (rootNode) {
+      calculateSubtreeWidth(rootNode);
+      assignPositions(rootNode, 0);
+      extractPositions(rootNode, nodePositions);
+    }
+    
+    // Calcular dimensiones del canvas basadas en las posiciones reales
+    let minX = Infinity, maxX = -Infinity;
+    Object.values(nodePositions).forEach(pos => {
+      minX = Math.min(minX, pos.x);
+      maxX = Math.max(maxX, pos.x);
     });
     
-    sortedNodes.forEach(node => {
-      const level = node.level;
-      if (!levelCounters[level]) levelCounters[level] = 0;
-      
-      const nodesInThisLevel = nodesPerLevel[level];
-      const totalWidth = (nodesInThisLevel - 1) * nodeSpacing;
-      const startX = (svgWidth - totalWidth) / 2;
-      
-      const x = startX + (levelCounters[level] * nodeSpacing);
-      const y = level * levelHeight + 50;
-      
-      nodePositions[node.id] = { x, y };
-      levelCounters[level]++;
+    const treeWidth = maxX - minX;
+    const svgWidth = Math.max(1200, treeWidth + 400);
+    const offsetX = (svgWidth - treeWidth) / 2 - minX;
+    
+    // Aplicar offset para centrar el árbol
+    Object.values(nodePositions).forEach((pos) => {
+      pos.x += offsetX;
     });
 
     // Crear aristas

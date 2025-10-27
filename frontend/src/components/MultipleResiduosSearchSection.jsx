@@ -896,107 +896,193 @@ function MultipleResiduosSearchSection({ onNavigate }) {
     const maxLevel = Math.max(...Object.keys(nodesByLevel).map(Number));
     const levelHeight = 100;
     const nodeRadius = 25;
-    const svgHeight = (maxLevel + 1) * levelHeight + 100;
+    const svgHeight = (maxLevel + 1) * levelHeight + 150;
     
-    // ======= ALGORITMO DE POSICIONAMIENTO PARA ÁRBOL CUATERNARIO DE 4 NIVELES =======
+    // ======= ALGORITMO: POSICIONAMIENTO POR SUBTREE WIDTH (ADAPTADO PARA ÁRBOL CUATERNARIO) =======
+    // Sistema que calcula el ancho de cada subárbol recursivamente
     
-    // Primero, asignar índices horizontales a todos los nodos hoja (nivel 3)
-    // Esto garantiza que todas las hojas estén espaciadas uniformemente
-    const leafNodes = nodesByLevel[maxLevel] || [];
-    const numLeaves = leafNodes.length;
+    const MIN_HORIZONTAL_SPACING = 80; // Espacio mínimo entre nodos hermanos (reducido para árbol más ancho)
     
-    // Espaciado entre hojas - ajustado para mejor visualización al 100%
-    const minLeafSpacing = 120; // Espacio mínimo entre hojas
-    const totalLeafWidth = Math.max(numLeaves - 1, 0) * minLeafSpacing;
-    const svgWidth = Math.max(1400, totalLeafWidth + 400);
-    
-    // Asignar posiciones X a las hojas primero
-    const nodePositions = new Map();
-    const leftMargin = (svgWidth - totalLeafWidth) / 2;
-    
-    leafNodes.forEach((node, index) => {
-      const x = leftMargin + (index * minLeafSpacing);
-      nodePositions.set(node.path, { x, level: node.level });
-    });
-
-    // Ahora calcular posiciones de nodos internos desde nivel 2 hasta nivel 1
-    // La posición X de un nodo interno es el promedio de sus hijos
-    for (let level = maxLevel - 1; level >= 1; level--) {
-      const nodesInLevel = nodesByLevel[level] || [];
-      
-      nodesInLevel.forEach(node => {
-        // Encontrar los hijos de este nodo según el nivel
-        let childPaths = [];
-        
-        if (level === 1) {
-          // Nivel 1: tiene 4 hijos (aristas 00, 01, 10, 11)
-          childPaths = ['00', '01', '10', '11'].map(bits => node.path + bits);
-        } else if (level === 2) {
-          // Nivel 2: tiene 2 hijos (aristas 0, 1)
-          childPaths = ['0', '1'].map(bit => node.path + bit);
-        }
-        
-        // Obtener posiciones de los hijos que existen
-        const childPositions = childPaths
-          .map(path => nodePositions.get(path))
-          .filter(pos => pos !== undefined);
-        
-        let x;
-        if (childPositions.length > 0) {
-          // Calcular el promedio de las posiciones X de los hijos
-          const sumX = childPositions.reduce((sum, pos) => sum + pos.x, 0);
-          x = sumX / childPositions.length;
-        } else {
-          // No tiene hijos (caso raro), centrar
-          x = svgWidth / 2;
-        }
-        
-        nodePositions.set(node.path, { x, level: node.level });
-      });
-    }
-    
-    // Calcular posición de la raíz (nivel 0) como promedio de los nodos de nivel 1
-    const level1Nodes = nodesByLevel[1] || [];
-    if (level1Nodes.length > 0) {
-      const level1Positions = level1Nodes
-        .map(node => nodePositions.get(node.path))
-        .filter(pos => pos !== undefined);
-      
-      if (level1Positions.length > 0) {
-        const sumX = level1Positions.reduce((sum, pos) => sum + pos.x, 0);
-        const rootX = sumX / level1Positions.length;
-        nodePositions.set('root', { x: rootX, level: 0 });
+    // Clase para almacenar información de ancho de subárbol
+    class TreeNode {
+      constructor(data, path) {
+        this.data = data;
+        this.path = path;
+        this.children = []; // Árbol cuaternario puede tener hasta 4 hijos
+        this.width = 1;
+        this.x = 0;
+        this.y = 0;
       }
     }
+    
+    // Construir árbol de objetos TreeNode desde treeStructure
+    // En MultipleResiduos: Nivel 1 (2 bits: 00,01,10,11) -> Nivel 2 (2 bits) -> Nivel 3 (1 bit)
+    const buildTreeObjects = (path, level) => {
+      const nodeData = treeStructure[path];
+      if (!nodeData) return null;
+      
+      const node = new TreeNode(nodeData, path);
+      
+      // Determinar paths de hijos según el nivel
+      let childPaths = [];
+      if (level === 1) {
+        // Nivel 1: cada nodo tiene 4 hijos (2 bits: 00, 01, 10, 11)
+        childPaths = ['00', '01', '10', '11'].map(bits => path + bits);
+      } else if (level === 2) {
+        // Nivel 2: cada nodo tiene 2 hijos (1 bit: 0, 1)
+        childPaths = ['0', '1'].map(bit => path + bit);
+      }
+      // Nivel 3 son hojas, no tienen hijos
+      
+      // Construir hijos que existen
+      for (const childPath of childPaths) {
+        const child = buildTreeObjects(childPath, level + 1);
+        if (child) {
+          node.children.push(child);
+        }
+      }
+      
+      return node;
+    };
+    
+    // Calcular el ancho de cada subárbol (número de hojas)
+    const calculateSubtreeWidth = (node) => {
+      if (!node) return 0;
+      
+      // Si es hoja, su ancho es 1
+      if (node.data.isLeaf) {
+        node.width = 1;
+        return 1;
+      }
+      
+      // Si no tiene hijos, ancho 1
+      if (node.children.length === 0) {
+        node.width = 1;
+        return 1;
+      }
+      
+      // Si es nodo interno, su ancho es la suma de los anchos de sus hijos
+      let totalWidth = 0;
+      for (const child of node.children) {
+        totalWidth += calculateSubtreeWidth(child);
+      }
+      
+      node.width = Math.max(1, totalWidth);
+      return node.width;
+    };
+    
+    // Asignar posiciones X basadas en el ancho de subárboles
+    const assignPositions = (node, startX = 0) => {
+      if (!node) return;
+      
+      if (node.data.isLeaf || node.children.length === 0) {
+        // Hoja: posición exacta en startX
+        node.x = startX * MIN_HORIZONTAL_SPACING;
+        node.y = node.data.level * levelHeight + 100; // +100 para dejar espacio a la raíz virtual
+      } else {
+        // Nodo interno: calcular posiciones de hijos primero
+        let currentX = startX;
+        for (const child of node.children) {
+          assignPositions(child, currentX);
+          currentX += child.width;
+        }
+        
+        // Nodo interno: en el centro de sus hijos
+        if (node.children.length > 0) {
+          const firstChildX = node.children[0].x;
+          const lastChildX = node.children[node.children.length - 1].x;
+          node.x = (firstChildX + lastChildX) / 2;
+        } else {
+          node.x = startX * MIN_HORIZONTAL_SPACING;
+        }
+        
+        node.y = node.data.level * levelHeight + 100;
+      }
+    };
+    
+    // Extraer posiciones en un mapa
+    const extractPositions = (node, posMap = new Map()) => {
+      if (!node) return posMap;
+      
+      posMap.set(node.path, { x: node.x, y: node.y });
+      
+      for (const child of node.children) {
+        extractPositions(child, posMap);
+      }
+      
+      return posMap;
+    };
+    
+    // Construir los 4 subárboles principales (nivel 1: '00', '01', '10', '11')
+    const rootChildren = [];
+    
+    for (const path of ['00', '01', '10', '11']) {
+      const subTree = buildTreeObjects(path, 1);
+      if (subTree) {
+        calculateSubtreeWidth(subTree);
+        rootChildren.push(subTree);
+      }
+    }
+    
+    // Asignar posiciones a cada subárbol
+    let currentX = 0;
+    const nodePositions = new Map();
+    
+    for (const subTree of rootChildren) {
+      assignPositions(subTree, currentX);
+      extractPositions(subTree, nodePositions);
+      currentX += subTree.width;
+    }
+    
+    // Calcular posición de la raíz virtual (nivel 0)
+    if (rootChildren.length > 0) {
+      const firstChild = rootChildren[0];
+      const lastChild = rootChildren[rootChildren.length - 1];
+      const rootX = (firstChild.x + lastChild.x) / 2;
+      nodePositions.set('root', { x: rootX, y: 50 });
+    }
+    
+    // Calcular dimensiones del canvas basadas en las posiciones reales
+    let minX = Infinity, maxX = -Infinity;
+    nodePositions.forEach(pos => {
+      minX = Math.min(minX, pos.x);
+      maxX = Math.max(maxX, pos.x);
+    });
+    
+    const treeWidth = maxX - minX;
+    const svgWidth = Math.max(1400, treeWidth + 400);
+    const offsetX = (svgWidth - treeWidth) / 2 - minX;
+    
+    // Aplicar offset para centrar el árbol
+    nodePositions.forEach((pos) => {
+      pos.x += offsetX;
+    });
     
     // Crear estructura de nodos con posiciones finales
     const nodesWithPositions = [];
     
-    // Agregar la raíz si existen nodos de nivel 1
-    if (level1Nodes.length > 0) {
-      const rootPos = nodePositions.get('root');
-      if (rootPos) {
-        nodesWithPositions.push({
-          path: 'root',
-          level: 0,
-          bits: '',
-          isLeaf: false,
-          key: null,
-          x: rootPos.x,
-          y: 50
-        });
-      }
+    // Agregar la raíz
+    const rootPos = nodePositions.get('root');
+    if (rootPos) {
+      nodesWithPositions.push({
+        path: 'root',
+        level: 0,
+        bits: '',
+        isLeaf: false,
+        key: null,
+        x: rootPos.x,
+        y: rootPos.y
+      });
     }
     
     // Agregar los demás nodos del árbol
     Object.values(treeStructure).forEach(node => {
       const position = nodePositions.get(node.path);
       if (position) {
-        const y = (node.level + 1) * levelHeight + 50; // +1 porque raíz es nivel 0
         nodesWithPositions.push({
           ...node,
           x: position.x,
-          y
+          y: position.y
         });
       }
     });
