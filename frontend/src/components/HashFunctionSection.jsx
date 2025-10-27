@@ -41,6 +41,9 @@ function HashFunctionSection({ onNavigate }) {
   // Estado para los datos de la estructura
   const [memoryArray, setMemoryArray] = useState([]);
   
+  // Estado para arreglos anidados (solo para método 'arreglos')
+  const [nestedArrays, setNestedArrays] = useState([]);
+  
   // Estados para mensajes informativos
   const [message, setMessage] = useState({ text: '', type: '' });
   
@@ -126,6 +129,7 @@ function HashFunctionSection({ onNavigate }) {
   // Funciones Hash
   const hashFunctions = {
     mod: (key, size) => {
+      // La función MOD ya genera un índice válido directamente
       return parseInt(key) % size;
     },
     cuadrado: (key, size) => {
@@ -135,12 +139,18 @@ function HashFunctionSection({ onNavigate }) {
       // Calcular cuántos dígitos tomar según el tamaño de la estructura
       const digitsNeeded = Math.floor(Math.log10(size)) + 1;
       
-      // Tomar dígitos centrales hacia la izquierda
+      // Tomar dígitos centrales
       const startIndex = Math.max(0, Math.floor((str.length - digitsNeeded) / 2));
       const extracted = str.substring(startIndex, startIndex + digitsNeeded);
       
-      // Sumar 1 al resultado y aplicar módulo para que quepa en la estructura
-      return (parseInt(extracted || '0') + 1) % size;
+      const result = parseInt(extracted || '0');
+      
+      // Si el resultado es mayor o igual al tamaño, aplicar la función hash nuevamente
+      if (result >= size) {
+        return hashFunctions.cuadrado(result.toString(), size);
+      }
+      
+      return result;
     },
     truncamiento: (key, size) => {
       // Definir posiciones específicas a tomar (siempre las mismas para todas las claves)
@@ -158,8 +168,14 @@ function HashFunctionSection({ onNavigate }) {
         extracted = '0';
       }
       
-      // Sumar 1 al resultado y aplicar módulo
-      return (parseInt(extracted) + 1) % size;
+      const result = parseInt(extracted);
+      
+      // Si el resultado es mayor o igual al tamaño, aplicar la función hash nuevamente
+      if (result >= size) {
+        return hashFunctions.truncamiento(result.toString(), size);
+      }
+      
+      return result;
     },
     plegamiento: (key, size) => {
       // Calcular tamaño de cada parte (dividir en 2 partes iguales)
@@ -176,8 +192,12 @@ function HashFunctionSection({ onNavigate }) {
         }
       }
       
-      // Sumar 1 al resultado y aplicar módulo
-      return (sum + 1) % size;
+      // Si el resultado es mayor o igual al tamaño, aplicar la función hash nuevamente
+      if (sum >= size) {
+        return hashFunctions.plegamiento(sum.toString(), size);
+      }
+      
+      return sum;
     }
   };
 
@@ -186,59 +206,6 @@ function HashFunctionSection({ onNavigate }) {
     const activeHashFunction = isStructureCreated ? currentStructureConfig.hashFunction : hashFunction;
     const activeStructureSize = isStructureCreated ? currentStructureConfig.structureSize : structureSize;
     return hashFunctions[activeHashFunction](key, activeStructureSize);
-  };
-
-  // Función para generar mensaje detallado de la función hash
-  const getHashFunctionMessage = (key, result) => {
-    const activeHashFunction = isStructureCreated ? currentStructureConfig.hashFunction : hashFunction;
-    const activeStructureSize = isStructureCreated ? currentStructureConfig.structureSize : structureSize;
-    
-    switch (activeHashFunction) {
-      case 'mod':
-        return `Hash MOD: ${key} % ${activeStructureSize} = ${result}`;
-      
-      case 'cuadrado': {
-        const squared = Math.pow(parseInt(key), 2);
-        const str = squared.toString();
-        const digitsNeeded = Math.floor(Math.log10(activeStructureSize)) + 1;
-        const startIndex = Math.max(0, Math.floor((str.length - digitsNeeded) / 2));
-        const extracted = str.substring(startIndex, startIndex + digitsNeeded);
-        const beforeMod = parseInt(extracted || '0') + 1;
-        return `Hash Cuadrado: ${key}² = ${squared} → dígitos centrales: ${extracted} → +1 = ${beforeMod} → ${beforeMod} % ${activeStructureSize} = ${result}`;
-      }
-      
-      case 'truncamiento': {
-        const positions = [0, 2];
-        let extracted = '';
-        positions.forEach(pos => {
-          if (pos < key.length) {
-            extracted += key[pos];
-          }
-        });
-        if (extracted === '') extracted = '0';
-        const beforeMod = parseInt(extracted) + 1;
-        return `Hash Truncamiento: posiciones [${positions.join(', ')}] de ${key} = ${extracted} → +1 = ${beforeMod} → ${beforeMod} % ${activeStructureSize} = ${result}`;
-      }
-      
-      case 'plegamiento': {
-        const partSize = Math.floor(key.length / 2);
-        let parts = [];
-        let sum = 0;
-        
-        for (let i = 0; i < key.length; i += partSize) {
-          const part = key.substring(i, i + partSize);
-          if (part.length > 0) {
-            parts.push(part);
-            sum += parseInt(part);
-          }
-        }
-        const beforeMod = sum + 1;
-        return `Hash Plegamiento: ${parts.length} partes [${parts.join(', ')}] → suma = ${sum} → +1 = ${beforeMod} → ${beforeMod} % ${activeStructureSize} = ${result}`;
-      }
-      
-      default:
-        return `Hash: ${result}`;
-    }
   };
 
   // Métodos de resolución de colisiones (usa la configuración actual de la estructura)
@@ -551,9 +518,15 @@ function HashFunctionSection({ onNavigate }) {
 
   // Función para actualizar la visualización de la estructura
   const updateStructureVisualization = (array) => {
+    const activeCollisionMethod = isStructureCreated ? currentStructureConfig.collisionMethod : collisionMethod;
     const newStructure = Array(structureSize).fill(null).map((_, index) => ({
       position: index + 1, // Numeración desde 1
-      value: array[index] || null,
+      // Para encadenamiento, el valor es un array de claves (lista)
+      // Para arreglos anidados, el valor es simple (las colisiones van en arreglos separados)
+      // Para otros métodos, el valor es simple
+      value: activeCollisionMethod === 'encadenamiento' 
+        ? (Array.isArray(array[index]) ? array[index] : [])
+        : (array[index] || null),
       isHighlighted: false
     }));
     setStructureData(newStructure);
@@ -576,8 +549,23 @@ function HashFunctionSection({ onNavigate }) {
       });
       
       setIsStructureCreated(true);
-      const emptyArray = Array(structureSize).fill(null);
+      
+      // Para encadenamiento, cada posición es un array
+      // Para arreglos asociados, la memoria principal es simple y se crean arreglos anidados según se necesiten
+      // Para otros métodos, cada posición es un valor simple (null o string)
+      const emptyArray = collisionMethod === 'encadenamiento'
+        ? Array(structureSize).fill(null).map(() => [])
+        : Array(structureSize).fill(null);
+      
       setMemoryArray(emptyArray);
+      
+      // Inicializar arreglos anidados vacíos para método 'arreglos'
+      if (collisionMethod === 'arreglos') {
+        setNestedArrays([]);
+      } else {
+        setNestedArrays([]);
+      }
+      
       updateStructureVisualization(emptyArray);
       setHistory([]);
       setHistoryIndex(-1);
@@ -604,17 +592,240 @@ function HashFunctionSection({ onNavigate }) {
     }
 
     // Verificar si la clave ya existe
-    if (memoryArray.includes(formattedKey)) {
-      showMessage('No se aceptan claves repetidas', 'error');
-      return;
+    const activeCollisionMethod = isStructureCreated ? currentStructureConfig.collisionMethod : collisionMethod;
+    const activeStructureSize = isStructureCreated ? currentStructureConfig.structureSize : structureSize;
+    
+    // Para encadenamiento, verificar en el array de listas
+    if (activeCollisionMethod === 'encadenamiento') {
+      const keyExists = memoryArray.some(chain => Array.isArray(chain) && chain.includes(formattedKey));
+      if (keyExists) {
+        showMessage('No se aceptan claves repetidas', 'error');
+        return;
+      }
+      
+      // Verificar límite total de elementos
+      const totalElements = memoryArray.reduce((sum, chain) => 
+        sum + (Array.isArray(chain) ? chain.length : 0), 0
+      );
+      if (totalElements >= activeStructureSize) {
+        showMessage('La estructura está llena', 'error');
+        return;
+      }
+    } else if (activeCollisionMethod === 'arreglos') {
+      // Para arreglos anidados, verificar en memoria principal y en todos los arreglos anidados
+      if (memoryArray.includes(formattedKey)) {
+        showMessage('No se aceptan claves repetidas', 'error');
+        return;
+      }
+      
+      const keyExistsInNested = nestedArrays.some(nestedArray => 
+        nestedArray.array.includes(formattedKey)
+      );
+      if (keyExistsInNested) {
+        showMessage('No se aceptan claves repetidas', 'error');
+        return;
+      }
+      
+      // Verificar límite total: memoria principal + todos los arreglos anidados
+      const mainElements = memoryArray.filter(item => item !== null).length;
+      const nestedElements = nestedArrays.reduce((sum, nested) => 
+        sum + nested.array.filter(item => item !== null).length, 0
+      );
+      const totalElements = mainElements + nestedElements;
+      
+      if (totalElements >= activeStructureSize) {
+        showMessage('La estructura está llena', 'error');
+        return;
+      }
+    } else {
+      // Para otros métodos, verificar normalmente
+      if (memoryArray.includes(formattedKey)) {
+        showMessage('No se aceptan claves repetidas', 'error');
+        return;
+      }
     }
 
     // Calcular posición hash
     const hashIndex = applyHashFunction(formattedKey);
-    const hashMessage = getHashFunctionMessage(formattedKey, hashIndex);
     let finalIndex = hashIndex;
     let attempts = 0;
+    let hashApplications = 1; // Contar cuántas veces se aplicó la función hash
     
+    // Contar cuántas veces se reaplicó la función hash internamente
+    const countHashApplications = (key, size) => {
+      const activeHashFunction = isStructureCreated ? currentStructureConfig.hashFunction : hashFunction;
+      let count = 1;
+      
+      if (activeHashFunction === 'cuadrado') {
+        const squared = Math.pow(parseInt(key), 2);
+        const str = squared.toString();
+        const digitsNeeded = Math.floor(Math.log10(size)) + 1;
+        const startIndex = Math.max(0, Math.floor((str.length - digitsNeeded) / 2));
+        const extracted = str.substring(startIndex, startIndex + digitsNeeded);
+        const result = parseInt(extracted || '0');
+        if (result >= size) {
+          return 1 + countHashApplications(result.toString(), size);
+        }
+      } else if (activeHashFunction === 'truncamiento') {
+        const positions = [0, 2];
+        let extracted = '';
+        positions.forEach(pos => {
+          if (pos < key.length) {
+            extracted += key[pos];
+          }
+        });
+        if (extracted === '') extracted = '0';
+        const result = parseInt(extracted);
+        if (result >= size) {
+          return 1 + countHashApplications(result.toString(), size);
+        }
+      } else if (activeHashFunction === 'plegamiento') {
+        const partSize = Math.floor(key.length / 2);
+        let sum = 0;
+        for (let i = 0; i < key.length; i += partSize) {
+          const part = key.substring(i, i + partSize);
+          if (part.length > 0) {
+            sum += parseInt(part);
+          }
+        }
+        if (sum >= size) {
+          return 1 + countHashApplications(sum.toString(), size);
+        }
+      }
+      
+      return count;
+    };
+    
+    hashApplications = countHashApplications(formattedKey, activeStructureSize);
+    
+    // Para encadenamiento, agregar a la lista en la posición hash
+    if (activeCollisionMethod === 'encadenamiento') {
+      const newArray = [...memoryArray];
+      const previousState = [...memoryArray];
+      
+      // Agregar a la lista en la posición hash
+      newArray[hashIndex] = [...newArray[hashIndex], formattedKey];
+      setMemoryArray(newArray);
+      updateStructureVisualization(newArray);
+      
+      // Agregar al historial
+      addToHistory({
+        type: 'insert',
+        key: formattedKey,
+        position: hashIndex,
+        hashIndex: hashIndex,
+        attempts: 0,
+        previousState: previousState,
+        newState: newArray
+      });
+
+      // Mensaje principal
+      const chainLength = newArray[hashIndex].length;
+      const hashMsg = hashApplications > 1 
+        ? `Clave insertada en posición ${hashIndex + 1} (función hash aplicada ${hashApplications} veces, elemento ${chainLength} en la cadena)`
+        : `Clave insertada en posición ${hashIndex + 1} (elemento ${chainLength} en la cadena)`;
+      
+      showMessage(hashMsg, 'success');
+      
+      setInsertKey('');
+      markAsChanged();
+      return;
+    }
+    
+    // Para arreglos anidados
+    if (activeCollisionMethod === 'arreglos') {
+      const previousMainState = [...memoryArray];
+      const previousNestedState = JSON.parse(JSON.stringify(nestedArrays));
+      
+      // Si la posición en memoria principal está libre, insertar ahí
+      if (memoryArray[hashIndex] === null) {
+        const newArray = [...memoryArray];
+        newArray[hashIndex] = formattedKey;
+        setMemoryArray(newArray);
+        updateStructureVisualization(newArray);
+        
+        addToHistory({
+          type: 'insert',
+          key: formattedKey,
+          position: hashIndex,
+          hashIndex: hashIndex,
+          attempts: 0,
+          arrayType: 'main',
+          previousState: previousMainState,
+          newState: newArray,
+          previousNestedState: previousNestedState,
+          newNestedState: nestedArrays
+        });
+
+        const hashMsg = hashApplications > 1 
+          ? `Clave insertada en Memoria posición ${hashIndex + 1} (función hash aplicada ${hashApplications} veces)`
+          : `Clave insertada en Memoria posición ${hashIndex + 1}`;
+        
+        showMessage(hashMsg, 'success');
+      } else {
+        // Hay colisión, buscar o crear arreglo anidado
+        let targetNestedArrayIndex = -1;
+        
+        // Buscar un arreglo anidado que tenga la posición libre
+        for (let i = 0; i < nestedArrays.length; i++) {
+          if (nestedArrays[i].array[hashIndex] === null) {
+            targetNestedArrayIndex = i;
+            break;
+          }
+        }
+        
+        let newNestedArrays;
+        let arrayNumber;
+        
+        if (targetNestedArrayIndex === -1) {
+          // Crear nuevo arreglo anidado
+          const newNestedArray = {
+            id: nestedArrays.length + 1,
+            array: Array(activeStructureSize).fill(null)
+          };
+          newNestedArray.array[hashIndex] = formattedKey;
+          newNestedArrays = [...nestedArrays, newNestedArray];
+          arrayNumber = newNestedArray.id;
+        } else {
+          // Usar arreglo existente
+          newNestedArrays = [...nestedArrays];
+          newNestedArrays[targetNestedArrayIndex] = {
+            ...newNestedArrays[targetNestedArrayIndex],
+            array: [...newNestedArrays[targetNestedArrayIndex].array]
+          };
+          newNestedArrays[targetNestedArrayIndex].array[hashIndex] = formattedKey;
+          arrayNumber = newNestedArrays[targetNestedArrayIndex].id;
+        }
+        
+        setNestedArrays(newNestedArrays);
+        
+        addToHistory({
+          type: 'insert',
+          key: formattedKey,
+          position: hashIndex,
+          hashIndex: hashIndex,
+          attempts: 0,
+          arrayType: 'nested',
+          arrayNumber: arrayNumber,
+          previousState: previousMainState,
+          newState: memoryArray,
+          previousNestedState: previousNestedState,
+          newNestedState: newNestedArrays
+        });
+
+        const hashMsg = hashApplications > 1 
+          ? `Clave insertada en Arreglo ${arrayNumber} posición ${hashIndex + 1} (función hash aplicada ${hashApplications} veces)`
+          : `Clave insertada en Arreglo ${arrayNumber} posición ${hashIndex + 1}`;
+        
+        showMessage(hashMsg, 'success');
+      }
+      
+      setInsertKey('');
+      markAsChanged();
+      return;
+    }
+    
+    // Para otros métodos de colisión (secuencial, cuadrática, hash doble)
     // Resolver colisiones
     while (memoryArray[finalIndex] !== null && attempts < structureSize) {
       attempts++;
@@ -650,8 +861,30 @@ function HashFunctionSection({ onNavigate }) {
       newState: newArray
     });
 
-    const collisionMsg = attempts > 0 ? ` (${attempts} colisiones resueltas)` : '';
-    showMessage(`${hashMessage} → Insertada en posición ${finalIndex + 1}${collisionMsg}`, 'success');
+    // Mensaje principal: dónde se insertó y cuántas veces se aplicó la función hash
+    const hashMsg = hashApplications > 1 
+      ? `Clave insertada en posición ${finalIndex + 1} (función hash aplicada ${hashApplications} veces)`
+      : `Clave insertada en posición ${finalIndex + 1}`;
+    
+    showMessage(hashMsg, 'success');
+    
+    // Mensaje adicional si hubo colisiones
+    if (attempts > 0) {
+      const activeCollisionMethod = isStructureCreated ? currentStructureConfig.collisionMethod : collisionMethod;
+      const collisionMethodNames = {
+        'secuencial': 'Secuencial',
+        'cuadratica': 'Cuadrática',
+        'hashmod': 'Hash Doble',
+        'arreglos': 'Arreglos Asociados',
+        'encadenamiento': 'Encadenamiento'
+      };
+      const methodName = collisionMethodNames[activeCollisionMethod] || activeCollisionMethod;
+      
+      setTimeout(() => {
+        showMessage(`Colisión resuelta: ${attempts} intento(s) usando método ${methodName}`, 'info');
+      }, 1500);
+    }
+    
     setInsertKey('');
     markAsChanged();
   };
@@ -803,10 +1036,18 @@ function HashFunctionSection({ onNavigate }) {
       return null;
     }
 
+    const activeCollisionMethod = isStructureCreated ? currentStructureConfig.collisionMethod : collisionMethod;
+    const isChaining = activeCollisionMethod === 'encadenamiento';
+
     // Obtener todas las posiciones que necesitamos mostrar (primera, última, ocupadas, destacadas)
     const occupiedPositions = structureData
       .map((item, index) => ({ ...item, index }))
-      .filter(item => item.value !== null);
+      .filter(item => {
+        if (isChaining) {
+          return Array.isArray(item.value) && item.value.length > 0;
+        }
+        return item.value !== null;
+      });
     
     const highlightedPositions = structureData
       .map((item, index) => ({ ...item, index }))
@@ -845,8 +1086,87 @@ function HashFunctionSection({ onNavigate }) {
                 {/* Fila actual */}
                 <div className={`table-row ${item.isHighlighted ? 'highlighted' : ''}`}>
                   <span className="row-number">{item.position}</span>
-                  <span className={`cell-memory ${!item.value ? 'empty' : ''}`}>
-                    {item.value || '—'}
+                  {isChaining ? (
+                    <div className="cell-memory-chain">
+                      {Array.isArray(item.value) && item.value.length > 0 ? (
+                        <div className="chain-container">
+                          {item.value.map((key, idx) => (
+                            <React.Fragment key={idx}>
+                              <span className="chain-node">{key}</span>
+                              {idx < item.value.length - 1 && <span className="chain-arrow">→</span>}
+                            </React.Fragment>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="empty">—</span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className={`cell-memory ${!item.value ? 'empty' : ''}`}>
+                      {item.value || '—'}
+                    </span>
+                  )}
+                </div>
+                
+                {/* Puntos suspensivos solo si hay un salto en las posiciones */}
+                {hasGap && (
+                  <div className="table-row ellipsis-row">
+                    <span className="row-number">⋮</span>
+                    <span className="cell-memory">⋮</span>
+                  </div>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  // Renderizar tabla de arreglo anidado
+  const renderNestedArrayTable = (nestedArray) => {
+    if (!nestedArray || !nestedArray.array) {
+      return null;
+    }
+
+    // Obtener posiciones ocupadas
+    const occupiedPositions = nestedArray.array
+      .map((value, index) => ({ value, index, position: index + 1 }))
+      .filter(item => item.value !== null);
+    
+    // Crear lista de posiciones a mostrar
+    const positionsToShow = new Set();
+    positionsToShow.add(0); // Primera posición
+    if (nestedArray.array.length > 1) {
+      positionsToShow.add(nestedArray.array.length - 1); // Última posición
+    }
+    
+    // Agregar posiciones ocupadas
+    occupiedPositions.forEach(item => positionsToShow.add(item.index));
+    
+    // Convertir a array ordenado
+    const sortedPositions = Array.from(positionsToShow).sort((a, b) => a - b);
+    
+    return (
+      <div className="structure-table nested-table">
+        <div className="table-header">
+          <span className="header-memory">Posición</span>
+        </div>
+        
+        <div className="table-body">
+          {sortedPositions.map((currentIndex, arrayIndex) => {
+            const value = nestedArray.array[currentIndex];
+            const position = currentIndex + 1;
+            const nextIndex = sortedPositions[arrayIndex + 1];
+            const hasGap = nextIndex !== undefined && (nextIndex - currentIndex) > 1;
+            
+            return (
+              <React.Fragment key={currentIndex}>
+                {/* Fila actual */}
+                <div className="table-row">
+                  <span className="row-number">{position}</span>
+                  <span className={`cell-memory ${!value ? 'empty' : ''}`}>
+                    {value || '—'}
                   </span>
                 </div>
                 
@@ -1148,12 +1468,45 @@ function HashFunctionSection({ onNavigate }) {
                 <p><strong>Función Hash:</strong> {isStructureCreated ? currentStructureConfig.hashFunction : hashFunction}</p>
                 <p><strong>Resolución de Colisiones:</strong> {isStructureCreated ? currentStructureConfig.collisionMethod : collisionMethod}</p>
                 <p><strong>Tipo de Clave:</strong> Numérica de {isStructureCreated ? currentStructureConfig.keySize : keySize} dígitos</p>
-                <p><strong>Elementos:</strong> {memoryArray.filter(item => item !== null).length}/{isStructureCreated ? currentStructureConfig.structureSize : structureSize}</p>
+                <p><strong>Elementos:</strong> {
+                  (() => {
+                    const activeCollisionMethod = isStructureCreated ? currentStructureConfig.collisionMethod : collisionMethod;
+                    let count = 0;
+                    
+                    if (activeCollisionMethod === 'encadenamiento') {
+                      count = memoryArray.reduce((sum, chain) => sum + (Array.isArray(chain) ? chain.length : 0), 0);
+                    } else if (activeCollisionMethod === 'arreglos') {
+                      const mainCount = memoryArray.filter(item => item !== null).length;
+                      const nestedCount = nestedArrays.reduce((sum, nested) => 
+                        sum + nested.array.filter(item => item !== null).length, 0
+                      );
+                      count = mainCount + nestedCount;
+                    } else {
+                      count = memoryArray.filter(item => item !== null).length;
+                    }
+                    
+                    return `${count}/${isStructureCreated ? currentStructureConfig.structureSize : structureSize}`;
+                  })()
+                }</p>
               </div>
               
               {/* Visualización de la estructura de datos */}
               <div className="data-structure-view">
-                {renderStructureTable()}
+                <div className="main-memory-container">
+                  {renderStructureTable()}
+                </div>
+                
+                {/* Mostrar arreglos anidados si el método es 'arreglos' */}
+                {(isStructureCreated ? currentStructureConfig.collisionMethod : collisionMethod) === 'arreglos' && nestedArrays.length > 0 && (
+                  <div className="nested-arrays-container">
+                    {nestedArrays.map((nestedArray) => (
+                      <div key={nestedArray.id} className="nested-array-section">
+                        <h4>Arreglo {nestedArray.id}</h4>
+                        {renderNestedArrayTable(nestedArray)}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}

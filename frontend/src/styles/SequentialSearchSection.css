@@ -646,11 +646,14 @@
 .data-structure-view {
   flex: 1;
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
   justify-content: flex-start;
   padding: 20px;
   overflow-y: auto;
+  gap: 24px;
+  max-width: 100%;
 }
 
 /* Tabla de la estructura */
@@ -1264,3 +1267,117 @@
   stroke-dasharray: none !important;
 }
 
+/* Estilos para listas encadenadas (Chaining) */
+.cell-memory-chain {
+  padding: 8px 12px;
+  width: calc(100% - 60px);
+  min-height: 48px;
+  font-size: 0.9rem;
+  color: #1f2937;
+  font-family: 'Courier New', monospace;
+  border: 1px solid #e5e7eb;
+  background: white;
+  margin: 4px 16px 4px 44px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  overflow-x: auto;
+}
+
+.cell-memory-chain .empty {
+  color: #9ca3af;
+  font-style: italic;
+  width: 100%;
+  text-align: center;
+}
+
+.chain-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.chain-node {
+  padding: 6px 12px;
+  background: #3b82f6;
+  color: white;
+  border-radius: 6px;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+.chain-arrow {
+  color: #64748b;
+  font-size: 1.2rem;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.table-row.highlighted .cell-memory-chain {
+  background: #fef3c7;
+  border-color: #fbbf24;
+}
+
+.table-row.highlighted .chain-node {
+  background: #f59e0b;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+}
+
+.table-row.highlighted .chain-arrow {
+  color: #f59e0b;
+}
+
+/* Estilos para arreglos anidados */
+.main-memory-container {
+  flex-shrink: 0;
+  width: calc((100% - 48px) / 3); /* 3 elementos por fila con gap de 24px */
+  min-width: 280px;
+  max-width: 400px;
+}
+
+.nested-arrays-container {
+  display: contents; /* Permite que los hijos se posicionen en el grid padre */
+}
+
+.nested-array-section {
+  background: #f8fafc;
+  border: 2px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 16px;
+  width: calc((100% - 48px) / 3); /* 3 elementos por fila con gap de 24px */
+  min-width: 280px;
+  max-width: 400px;
+  flex-shrink: 0;
+}
+
+.nested-array-section h4 {
+  margin: 0 0 12px 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  justify-content: center;
+}
+
+.nested-table {
+  background: white;
+  border: 1px solid #e2e8f0;
+}
+
+.nested-table .table-header {
+  background: #e0e7ff;
+}
+
+.nested-table .table-row {
+  background: white;
+}
+
+.nested-table .table-row:hover {
+  background: #f1f5f9;
+}
