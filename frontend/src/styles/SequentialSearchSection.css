@@ -1050,6 +1050,37 @@
   font-family: 'Courier New', monospace;
 }
 
+.zoom-input {
+  width: 60px;
+  padding: 6px 8px;
+  background: white;
+  border: 2px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+  font-family: 'Courier New', monospace;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.zoom-input:hover {
+  border-color: #94a3b8;
+}
+
+.zoom-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.zoom-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+  margin-left: -4px;
+}
+
 .tree-instructions {
   padding: 12px 16px;
   background: #eff6ff;

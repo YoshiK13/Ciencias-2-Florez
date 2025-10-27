@@ -1161,7 +1161,20 @@ function MultipleResiduosSearchSection({ onNavigate }) {
               >
                 Resetear Zoom
               </button>
-              <span className="zoom-indicator">Zoom: {Math.round(treeZoom * 100)}%</span>
+              <input
+                type="number"
+                className="zoom-input"
+                value={Math.round(treeZoom * 100)}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value) || 50;
+                  const clampedValue = Math.max(50, Math.min(300, value));
+                  setTreeZoom(clampedValue / 100);
+                }}
+                min="50"
+                max="300"
+                step="10"
+              />
+              <span className="zoom-label">%</span>
             </div>
           </div>
           <div className="tree-legend">
