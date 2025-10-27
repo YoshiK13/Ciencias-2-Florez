@@ -1,6 +1,7 @@
 import { 
   List,
-  Network
+  Network,
+  ArrowLeft
 } from 'lucide-react';
 import '../styles/SearchSection.css';
 
@@ -31,6 +32,17 @@ function InternalSearchSection({ onNavigate }) {
             <Network size={48} />
             <h2>Búsquedas en Árboles</h2>
             <p>Residuos, Digitales, Trie, etc.</p>
+          </button>
+        </div>
+
+        {/* Botón para volver al inicio */}
+        <div className="back-button-container">
+          <button 
+            className="back-btn" 
+            onClick={() => onNavigate('home')}
+          >
+            <ArrowLeft size={16} />
+            Volver al Inicio
           </button>
         </div>
       </div>

@@ -43,6 +43,7 @@ function ResiduosSearchSection({ onNavigate }) {
   
   // Estados para zoom y pan del árbol
   const [treeZoom, setTreeZoom] = useState(1.0); // 1.0 = 100% (escala de 0.5 a 3.0)
+  const [baseScale, setBaseScale] = useState(1.0); // Escala base calculada automáticamente
   const [treePan, setTreePan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -669,42 +670,8 @@ function ResiduosSearchSection({ onNavigate }) {
   const speedLabels = ['Muy Lento', 'Lento', 'Normal', 'Rápido', 'Muy Rápido'];
 
   // ===== SISTEMA DE ZOOM DESDE CERO =====
-  // Manejador de zoom con la rueda del mouse
-  const handleWheelZoom = React.useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    // Calcular el cambio de zoom basado en el deltaY
-    const zoomSensitivity = 0.002;
-    const delta = -e.deltaY * zoomSensitivity;
-    
-    setTreeZoom(prevZoom => {
-      // Calcular nuevo zoom: 0.5 (50%) a 3.0 (300%)
-      const newZoom = prevZoom + delta;
-      
-      // Limitar el zoom entre 0.5 y 3.0
-      const clampedZoom = Math.max(0.5, Math.min(3.0, newZoom));
-      
-      // Log para debug (se puede remover después)
-      console.log('Zoom:', Math.round(clampedZoom * 100) + '%');
-      
-      return clampedZoom;
-    });
-  }, []);
-
-  // Efecto para agregar el listener de zoom al contenedor del árbol
-  React.useEffect(() => {
-    const container = treeContainerRef.current;
-    if (!container) return;
-
-    // Agregar el listener con passive: false para poder hacer preventDefault
-    container.addEventListener('wheel', handleWheelZoom, { passive: false });
-
-    return () => {
-      container.removeEventListener('wheel', handleWheelZoom);
-    };
-  }, [handleWheelZoom]);
-
+  // Zoom con rueda del mouse desactivado - se usa solo el control manual
+  
   // ===== FIN SISTEMA DE ZOOM =====
 
   // Funciones para pan del árbol
@@ -737,8 +704,52 @@ function ResiduosSearchSection({ onNavigate }) {
     setIsDragging(false);
   };
 
+  // Calcular escala base óptima basada en dimensiones del árbol
+  const calculateOptimalBaseScale = React.useCallback(() => {
+    if (Object.keys(treeStructure).length === 0 || !treeContainerRef.current) {
+      return 1.0;
+    }
+
+    // Obtener dimensiones del contenedor
+    const containerWidth = treeContainerRef.current.clientWidth;
+    const containerHeight = treeContainerRef.current.clientHeight;
+
+    // Calcular dimensiones del árbol
+    const maxLevel = Math.max(...Object.values(treeStructure).map(node => node.level));
+    const levelHeight = 100;
+    const treeHeight = (maxLevel + 1) * levelHeight + 100;
+
+    // Contar hojas para estimar ancho
+    const leafCount = Object.values(treeStructure).filter(node => node.isLeaf).length;
+    const MIN_HORIZONTAL_SPACING = 120;
+    const estimatedTreeWidth = Math.max(1200, leafCount * MIN_HORIZONTAL_SPACING + 400);
+
+    // Calcular factores de escala para ancho y alto con margen del 90% (usar 90% del contenedor)
+    const widthScale = (containerWidth * 0.9) / estimatedTreeWidth;
+    const heightScale = (containerHeight * 0.9) / treeHeight;
+
+    // Usar el menor de los dos para asegurar que el árbol completo sea visible
+    let optimalScale = Math.min(widthScale, heightScale);
+
+    // Multiplicar por 2.5 para que el 100% tenga el tamaño del antiguo 250%
+    optimalScale = optimalScale * 2.5;
+
+    // Limitar la escala base mínima a 0.5, pero sin límite máximo razonable (hasta 7.5)
+    return Math.max(0.5, Math.min(7.5, optimalScale));
+  }, [treeStructure]);
+
+  // Ajustar escala base automáticamente cuando se crea o modifica el árbol
+  React.useEffect(() => {
+    if (Object.keys(treeStructure).length > 0) {
+      const optimalScale = calculateOptimalBaseScale();
+      setBaseScale(optimalScale);
+      setTreeZoom(1.0); // Resetear zoom del usuario a 100%
+      setTreePan({ x: 0, y: 0 });
+    }
+  }, [treeStructure, calculateOptimalBaseScale]);
+
   const resetTreeView = () => {
-    setTreeZoom(1.0); // Resetear a 1.0 (100%)
+    setTreeZoom(1.0); // Resetear a 100%
     setTreePan({ x: 0, y: 0 });
   };
 
@@ -1089,7 +1100,7 @@ function ResiduosSearchSection({ onNavigate }) {
             </div>
           </div>
           <div className="tree-instructions">
-            <p><strong>Arrastrar:</strong> Click y mantén para mover | <strong>Zoom:</strong> Rueda del mouse</p>
+            <p><strong>Arrastrar:</strong> Click y mantén para mover | <strong>Zoom:</strong> Control de zoom en la ventana</p>
           </div>
         </div>
         <div 
@@ -1110,7 +1121,7 @@ function ResiduosSearchSection({ onNavigate }) {
             height={svgHeight} 
             viewBox={`0 0 ${svgWidth} ${svgHeight}`}
             style={{
-              transform: `translate(${treePan.x}px, ${treePan.y}px) scale(${treeZoom})`,
+              transform: `translate(${treePan.x}px, ${treePan.y}px) scale(${baseScale * treeZoom})`,
               transformOrigin: 'center center',
               transition: isDragging ? 'none' : 'transform 0.1s ease-out'
             }}
