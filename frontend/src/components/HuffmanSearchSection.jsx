@@ -592,8 +592,8 @@ function HuffmanSearchSection({ onNavigate }) {
     addToHistory({
       type: 'encode',
       message: messageText,
-      previousState: { keysData: previousKeysData, tree: previousTree },
-      newState: { keysData: newKeysData, tree: newTree }
+      previousState: { keysData: previousKeysData, tree: previousTree, originalMessage: originalMessage },
+      newState: { keysData: newKeysData, tree: newTree, originalMessage: messageText }
     });
 
     showMessage(`Mensaje "${messageText}" codificado exitosamente`, 'success');
@@ -682,13 +682,24 @@ function HuffmanSearchSection({ onNavigate }) {
   };
 
   // Funciones de deshacer y rehacer
+  // Funciones de deshacer y rehacer
+  const getActionName = (type) => {
+    const actionNames = {
+      'encode': 'Codificación de mensaje',
+      'insert': 'Inserción',
+      'delete': 'Eliminación'
+    };
+    return actionNames[type] || type;
+  };
+
   const handleUndo = () => {
     if (historyIndex >= 0) {
       const action = history[historyIndex];
       setKeysData(action.previousState.keysData);
       setTreeStructure(action.previousState.tree);
+      setOriginalMessage(action.previousState.originalMessage || '');
       setHistoryIndex(historyIndex - 1);
-      showMessage(`Acción ${action.type} deshecha`, 'info');
+      showMessage(`${getActionName(action.type)} deshecha`, 'info');
       markAsChanged();
     }
   };
@@ -698,8 +709,9 @@ function HuffmanSearchSection({ onNavigate }) {
       const action = history[historyIndex + 1];
       setKeysData(action.newState.keysData);
       setTreeStructure(action.newState.tree);
+      setOriginalMessage(action.newState.originalMessage || '');
       setHistoryIndex(historyIndex + 1);
-      showMessage(`Acción ${action.type} rehecha`, 'info');
+      showMessage(`${getActionName(action.type)} rehecha`, 'info');
       markAsChanged();
     }
   };

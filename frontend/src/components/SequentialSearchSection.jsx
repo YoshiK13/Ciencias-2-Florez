@@ -566,13 +566,22 @@ function SequentialSearchSection({ onNavigate }) {
   };
 
   // Funciones de deshacer y rehacer
+  // Funciones de deshacer y rehacer
+  const getActionName = (type) => {
+    const actionNames = {
+      'insert': 'Inserción',
+      'delete': 'Eliminación'
+    };
+    return actionNames[type] || type;
+  };
+
   const handleUndo = () => {
     if (historyIndex >= 0) {
       const action = history[historyIndex];
       setMemoryArray(action.previousState);
       updateStructureVisualization(action.previousState);
       setHistoryIndex(historyIndex - 1);
-      showMessage(`Acción ${action.type} deshecha`, 'info');
+      showMessage(`${getActionName(action.type)} deshecha`, 'info');
       markAsChanged();
     }
   };
@@ -583,7 +592,7 @@ function SequentialSearchSection({ onNavigate }) {
       setMemoryArray(action.newState);
       updateStructureVisualization(action.newState);
       setHistoryIndex(historyIndex + 1);
-      showMessage(`Acción ${action.type} rehecha`, 'info');
+      showMessage(`${getActionName(action.type)} rehecha`, 'info');
       markAsChanged();
     }
   };
