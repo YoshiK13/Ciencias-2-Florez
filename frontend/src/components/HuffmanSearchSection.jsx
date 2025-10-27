@@ -404,45 +404,81 @@ function HuffmanSearchSection({ onNavigate }) {
 
   // Nodo para el algoritmo de Huffman
   class HuffmanNode {
-    constructor(char, freq, left = null, right = null) {
+    static counter = 0; // Contador global para orden de creación
+    
+    constructor(char, freq, left = null, right = null, order = 0) {
       this.char = char;
       this.freq = freq;
       this.left = left;
       this.right = right;
+      this.order = order; // Orden de aparición en el mensaje original
+      this.timestamp = HuffmanNode.counter++; // Orden de creación del nodo
     }
   }
 
-  // Función para construir el árbol de Huffman
+  // Función para construir el árbol de Huffman siguiendo las reglas correctas
   const buildHuffmanTree = (messageText) => {
     if (!messageText || messageText.length === 0) {
       return null;
     }
 
-    // 1. Calcular frecuencias de cada carácter
+    // Reset contador
+    HuffmanNode.counter = 0;
+
+    // 1. Calcular frecuencias manteniendo el orden de aparición
     const freqMap = {};
+    const orderMap = {}; // Guardar orden de primera aparición
+    let order = 0;
+    
     for (const char of messageText) {
-      freqMap[char] = (freqMap[char] || 0) + 1;
+      if (!freqMap[char]) {
+        freqMap[char] = 0;
+        orderMap[char] = order++;
+      }
+      freqMap[char]++;
     }
 
-    // 2. Crear nodos hoja para cada carácter
+    // 2. Crear nodos hoja y ordenarlos como min-heap
     const nodes = Object.keys(freqMap).map(char => 
-      new HuffmanNode(char, freqMap[char])
+      new HuffmanNode(char, freqMap[char], null, null, orderMap[char])
     );
 
-    // 3. Construir el árbol de Huffman usando una cola de prioridad (min-heap)
+    // Ordenar por (frecuencia, timestamp)
+    nodes.sort((a, b) => {
+      if (a.freq !== b.freq) {
+        return a.freq - b.freq; // MENOR frecuencia primero
+      }
+      return a.timestamp - b.timestamp; // MENOR timestamp primero
+    });
+
+    // 3. Construir árbol usando algoritmo estándar de Huffman (min-heap)
     while (nodes.length > 1) {
-      // Ordenar por frecuencia (menor primero)
-      nodes.sort((a, b) => a.freq - b.freq);
-      
-      // Tomar los dos nodos con menor frecuencia
+      // Extraer los 2 primeros (menores frecuencias)
       const left = nodes.shift();
       const right = nodes.shift();
       
-      // Crear un nuevo nodo interno
-      const parent = new HuffmanNode(null, left.freq + right.freq, left, right);
+      // Crear nodo padre: izq=menor, der=mayor (ya ordenados)
+      const parent = new HuffmanNode(
+        null, 
+        left.freq + right.freq, 
+        left,
+        right,
+        Math.min(left.order, right.order)
+      );
       
-      // Agregar el nodo padre de vuelta a la lista
-      nodes.push(parent);
+      // Insertar manteniendo orden de heap (por frecuencia, luego timestamp)
+      let inserted = false;
+      for (let i = 0; i < nodes.length; i++) {
+        if (parent.freq < nodes[i].freq || 
+           (parent.freq === nodes[i].freq && parent.timestamp < nodes[i].timestamp)) {
+          nodes.splice(i, 0, parent);
+          inserted = true;
+          break;
+        }
+      }
+      if (!inserted) {
+        nodes.push(parent); // Insertar al final si es el mayor
+      }
     }
 
     return nodes[0]; // Raíz del árbol
@@ -472,22 +508,22 @@ function HuffmanSearchSection({ onNavigate }) {
   };
 
   // Función para convertir el árbol de Huffman a estructura visualizable
-  const convertTreeToStructure = (node, path = '', level = 1) => {
+  // Cada bit del código representa un nivel del árbol
+  const convertTreeToStructure = (node, path = '', level = 0) => {
     const structure = {};
     
     if (!node) return structure;
 
-    // Crear entrada para este nodo
-    if (path) {
-      structure[path] = {
-        bit: path[path.length - 1],
-        level: level,
-        path: path,
-        isLeaf: node.char !== null,
-        key: node.char,
-        frequency: node.freq
-      };
-    }
+    // Crear entrada para este nodo (incluyendo la raíz con path vacío)
+    const nodeKey = path || 'root';
+    structure[nodeKey] = {
+      bit: path ? path[path.length - 1] : null,
+      level: level,
+      path: nodeKey,
+      isLeaf: node.char !== null,
+      key: node.char,
+      frequency: node.freq
+    };
 
     // Recorrer hijos
     if (node.left) {
@@ -545,7 +581,7 @@ function HuffmanSearchSection({ onNavigate }) {
 
     setKeysData(newKeysData);
 
-    // Convertir árbol a estructura visualizable
+    // Convertir árbol a estructura visualizable (ahora incluye la raíz)
     const newTree = convertTreeToStructure(huffmanRoot);
     setTreeStructure(newTree);
     setIsStructureCreated(true);
@@ -805,73 +841,138 @@ function HuffmanSearchSection({ onNavigate }) {
 
     // Calcular dimensiones del SVG
     const maxLevel = Math.max(...Object.keys(nodesByLevel).map(Number));
-    const levelHeight = 100;
+    const levelHeight = 100; // Altura entre niveles
     const nodeRadius = 25;
     const svgHeight = (maxLevel + 1) * levelHeight + 100;
     
-    // ======= ALGORITMO SIMPLE Y ROBUSTO DE POSICIONAMIENTO =======
+    // ======= NUEVO ALGORITMO: POSICIONAMIENTO POR SUBTREE WIDTH =======
+    // Sistema que calcula el ancho de cada subárbol recursivamente
     
-    // Primero, asignar índices horizontales a todos los nodos hoja (nivel 8)
-    // Esto garantiza que todas las hojas estén espaciadas uniformemente
-    const leafNodes = nodesByLevel[maxLevel] || [];
-    const numLeaves = leafNodes.length;
+    const MIN_HORIZONTAL_SPACING = 100; // Espacio mínimo entre nodos hermanos
     
-    // Espaciado entre hojas - ajustado para mejor visualización al 100%
-    const minLeafSpacing = 150; // Espacio mínimo entre hojas
-    const totalLeafWidth = Math.max(numLeaves - 1, 0) * minLeafSpacing;
-    const svgWidth = Math.max(1200, totalLeafWidth + 400); // Canvas más compacto para mejor vista al 100%
+    // Clase para almacenar información de ancho de subárbol
+    class TreeNode {
+      constructor(data) {
+        this.data = data;
+        this.left = null;
+        this.right = null;
+        this.width = 1; // Ancho en "unidades" (hojas)
+        this.x = 0;
+        this.y = 0;
+      }
+    }
     
-    // Asignar posiciones X a las hojas primero
-    const nodePositions = new Map();
-    const leftMargin = (svgWidth - totalLeafWidth) / 2;
-    
-    leafNodes.forEach((node, index) => {
-      const x = leftMargin + (index * minLeafSpacing);
-      nodePositions.set(node.path, { x, level: node.level });
-    });
-
-    // Ahora calcular posiciones de nodos internos (niveles 1-7)
-    // La posición X de un nodo interno es el promedio de sus hijos
-    for (let level = maxLevel - 1; level >= 1; level--) {
-      const nodesInLevel = nodesByLevel[level] || [];
+    // Construir árbol de objetos TreeNode desde treeStructure
+    const buildTreeObjects = (path = 'root') => {
+      const nodeData = treeStructure[path];
+      if (!nodeData) return null;
       
-      nodesInLevel.forEach(node => {
-        // Encontrar los hijos de este nodo
-        const leftChildPath = node.path + '0';
-        const rightChildPath = node.path + '1';
+      const node = new TreeNode(nodeData);
+      
+      const leftPath = path === 'root' ? '0' : path + '0';
+      const rightPath = path === 'root' ? '1' : path + '1';
+      
+      node.left = buildTreeObjects(leftPath);
+      node.right = buildTreeObjects(rightPath);
+      
+      return node;
+    };
+    
+    // Calcular el ancho de cada subárbol (número de hojas)
+    const calculateSubtreeWidth = (node) => {
+      if (!node) return 0;
+      
+      // Si es hoja, su ancho es 1
+      if (node.data.isLeaf) {
+        node.width = 1;
+        return 1;
+      }
+      
+      // Si es nodo interno, su ancho es la suma de los anchos de sus hijos
+      const leftWidth = calculateSubtreeWidth(node.left);
+      const rightWidth = calculateSubtreeWidth(node.right);
+      
+      node.width = leftWidth + rightWidth;
+      return node.width;
+    };
+    
+    // Asignar posiciones X basadas en el ancho de subárboles
+    const assignPositions = (node, startX = 0) => {
+      if (!node) return;
+      
+      if (node.data.isLeaf) {
+        // Hoja: posición exacta en startX
+        node.x = startX * MIN_HORIZONTAL_SPACING;
+        node.y = node.data.level * levelHeight + 50;
+      } else {
+        // Nodo interno: calcular posiciones de hijos primero
+        const leftWidth = node.left ? node.left.width : 0;
         
-        const leftChild = nodePositions.get(leftChildPath);
-        const rightChild = nodePositions.get(rightChildPath);
-        
-        let x;
-        if (leftChild && rightChild) {
-          // Si tiene ambos hijos, posicionar en el centro
-          x = (leftChild.x + rightChild.x) / 2;
-        } else if (leftChild) {
-          // Solo hijo izquierdo
-          x = leftChild.x;
-        } else if (rightChild) {
-          // Solo hijo derecho
-          x = rightChild.x;
-        } else {
-          // No tiene hijos (caso raro), centrar
-          x = svgWidth / 2;
+        // Hijo izquierdo comienza en startX
+        if (node.left) {
+          assignPositions(node.left, startX);
         }
         
-        nodePositions.set(node.path, { x, level: node.level });
-      });
+        // Hijo derecho comienza después del subárbol izquierdo
+        if (node.right) {
+          assignPositions(node.right, startX + leftWidth);
+        }
+        
+        // Nodo interno: en el centro de sus hijos
+        const leftX = node.left ? node.left.x : startX * MIN_HORIZONTAL_SPACING;
+        const rightX = node.right ? node.right.x : startX * MIN_HORIZONTAL_SPACING;
+        
+        node.x = (leftX + rightX) / 2;
+        node.y = node.data.level * levelHeight + 50;
+      }
+    };
+    
+    // Extraer posiciones en un mapa
+    const extractPositions = (node, posMap = new Map()) => {
+      if (!node) return posMap;
+      
+      posMap.set(node.data.path, { x: node.x, y: node.y });
+      
+      extractPositions(node.left, posMap);
+      extractPositions(node.right, posMap);
+      
+      return posMap;
+    };
+    
+    // Ejecutar el algoritmo
+    const rootNode = buildTreeObjects('root');
+    if (rootNode) {
+      calculateSubtreeWidth(rootNode);
+      assignPositions(rootNode, 0);
     }
+    
+    const nodePositions = extractPositions(rootNode);
+    
+    // Calcular dimensiones del canvas basadas en las posiciones reales
+    let minX = Infinity, maxX = -Infinity;
+    nodePositions.forEach(pos => {
+      minX = Math.min(minX, pos.x);
+      maxX = Math.max(maxX, pos.x);
+    });
+    
+    const treeWidth = maxX - minX;
+    const svgWidth = Math.max(1200, treeWidth + 400);
+    const offsetX = (svgWidth - treeWidth) / 2 - minX;
+    
+    // Aplicar offset para centrar el árbol
+    nodePositions.forEach((pos) => {
+      pos.x += offsetX;
+    });
     
     // Crear estructura de nodos con posiciones finales
     const nodesWithPositions = [];
     Object.values(treeStructure).forEach(node => {
       const position = nodePositions.get(node.path);
       if (position) {
-        const y = node.level * levelHeight + 50;
         nodesWithPositions.push({
           ...node,
           x: position.x,
-          y
+          y: position.y
         });
       }
     });
@@ -879,9 +980,17 @@ function HuffmanSearchSection({ onNavigate }) {
     // Crear aristas mejoradas con información de dirección
     const edges = [];
     nodesWithPositions.forEach(node => {
-      if (node.level > 1) {
-        // Encontrar el nodo padre (path sin el último bit)
-        const parentPath = node.path.slice(0, -1);
+      if (node.level > 0) { // Cambiar de > 1 a > 0 para incluir nivel 1
+        // Encontrar el nodo padre (path sin el último bit, o 'root' si es nivel 1)
+        let parentPath;
+        if (node.path.length === 1) {
+          // Nodo en nivel 1 (como '0' o '1'), su padre es 'root'
+          parentPath = 'root';
+        } else {
+          // Nodo en niveles más profundos
+          parentPath = node.path.slice(0, -1);
+        }
+        
         const parent = nodesWithPositions.find(n => n.path === parentPath);
         
         if (parent) {
