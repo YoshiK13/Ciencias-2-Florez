@@ -773,18 +773,28 @@ function HuffmanSearchSection({ onNavigate }) {
     const MIN_HORIZONTAL_SPACING = 100;
     const estimatedTreeWidth = Math.max(1200, leafCount * MIN_HORIZONTAL_SPACING + 400);
 
-    // Calcular factores de escala para ancho y alto con margen del 90% (usar 90% del contenedor)
-    const widthScale = (containerWidth * 0.9) / estimatedTreeWidth;
-    const heightScale = (containerHeight * 0.9) / treeHeight;
+    // Calcular factores de escala para ancho y alto usando 95% del contenedor
+    const widthScale = (containerWidth * 0.95) / estimatedTreeWidth;
+    const heightScale = (containerHeight * 0.95) / treeHeight;
 
     // Usar el menor de los dos para asegurar que el árbol completo sea visible
     let optimalScale = Math.min(widthScale, heightScale);
 
-    // Multiplicar por 2.5 para que el 100% tenga el tamaño del antiguo 250%
-    optimalScale = optimalScale * 2.5;
+    // Ajustar según el tamaño del contenedor para diferentes dispositivos
+    // En pantallas más pequeñas, hacer el zoom base más conservador
+    if (containerWidth < 768) {
+      // Móvil: más compacto
+      optimalScale = optimalScale * 1.0;
+    } else if (containerWidth < 1024) {
+      // Tablet: medio
+      optimalScale = optimalScale * 1.2;
+    } else {
+      // Desktop: más espacioso (reducido un 10% respecto a antes: 1.5 * 0.9 = 1.35)
+      optimalScale = optimalScale * 1.35;
+    }
 
-    // Limitar la escala base mínima a 0.5, pero sin límite máximo razonable (hasta 7.5)
-    return Math.max(0.5, Math.min(7.5, optimalScale));
+    // Limitar la escala base para mantener usabilidad
+    return Math.max(0.3, Math.min(3.0, optimalScale));
   }, [treeStructure]);
 
   // Ajustar escala base automáticamente cuando se crea o modifica el árbol
@@ -1046,7 +1056,7 @@ function HuffmanSearchSection({ onNavigate }) {
                 onClick={resetTreeView}
                 title="Restablecer zoom y posición"
               >
-                Resetear Zoom
+                Resetear Vista
               </button>
               <input
                 type="number"

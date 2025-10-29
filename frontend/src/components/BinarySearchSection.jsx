@@ -91,7 +91,6 @@ function BinarySearchSection({ onNavigate }) {
   // Función para mostrar mensajes
   const showMessage = (text, type) => {
     setMessage({ text, type });
-    setTimeout(() => setMessage({ text: '', type: '' }), 5000);
   };
 
   // Función para manejar entrada de solo números
@@ -805,6 +804,13 @@ function BinarySearchSection({ onNavigate }) {
       {message.text && (
         <div className={`message-area ${message.type}`}>
           <p>{message.text}</p>
+          <button 
+            className="message-close-btn"
+            onClick={() => setMessage({ text: '', type: '' })}
+            title="Cerrar mensaje"
+          >
+            ✕
+          </button>
         </div>
       )}
 

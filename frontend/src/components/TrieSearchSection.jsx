@@ -792,41 +792,6 @@ function TrieSearchSection({ onNavigate }) {
   const speedLabels = ['Muy Lento', 'Lento', 'Normal', 'Rápido', 'Muy Rápido'];
 
   // ===== SISTEMA DE ZOOM DESDE CERO =====
-  // Manejador de zoom con la rueda del mouse
-  const handleWheelZoom = React.useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    // Calcular el cambio de zoom basado en el deltaY
-    const zoomSensitivity = 0.002;
-    const delta = -e.deltaY * zoomSensitivity;
-    
-    setTreeZoom(prevZoom => {
-      // Calcular nuevo zoom: 0.5 (50%) a 3.0 (300%)
-      const newZoom = prevZoom + delta;
-      
-      // Limitar el zoom entre 0.5 y 3.0
-      const clampedZoom = Math.max(0.5, Math.min(3.0, newZoom));
-      
-      // Log para debug (se puede remover después)
-      console.log('Zoom:', Math.round(clampedZoom * 100) + '%');
-      
-      return clampedZoom;
-    });
-  }, []);
-
-  // Efecto para agregar el listener de zoom al contenedor del árbol
-  React.useEffect(() => {
-    const container = treeContainerRef.current;
-    if (!container) return;
-
-    // Agregar el listener con passive: false para poder hacer preventDefault
-    container.addEventListener('wheel', handleWheelZoom, { passive: false });
-
-    return () => {
-      container.removeEventListener('wheel', handleWheelZoom);
-    };
-  }, [handleWheelZoom]);
 
   // ===== FIN SISTEMA DE ZOOM =====
 
@@ -1004,9 +969,22 @@ function TrieSearchSection({ onNavigate }) {
                 onClick={resetTreeView}
                 title="Restablecer zoom y posición"
               >
-                Resetear Zoom
+                Resetear Vista
               </button>
-              <span className="zoom-indicator">Zoom: {Math.round(treeZoom * 100)}%</span>
+              <input
+                type="number"
+                className="zoom-input"
+                value={Math.round(treeZoom * 100)}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value) || 100;
+                  const clampedValue = Math.max(50, Math.min(300, value));
+                  setTreeZoom(clampedValue / 100);
+                }}
+                min="50"
+                max="300"
+                step="10"
+              />
+              <span className="zoom-label">%</span>
             </div>
           </div>
           <div className="tree-legend">
@@ -1034,7 +1012,7 @@ function TrieSearchSection({ onNavigate }) {
             </div>
           </div>
           <div className="tree-instructions">
-            <p><strong>Arrastrar:</strong> Click y mantén para mover | <strong>Zoom:</strong> Rueda del mouse</p>
+            <p><strong>Arrastrar:</strong> Click y mantén para mover | <strong>Zoom:</strong> Control de zoom en la ventana</p>
           </div>
         </div>
         <div 
