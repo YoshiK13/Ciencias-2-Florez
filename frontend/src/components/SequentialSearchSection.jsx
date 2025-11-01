@@ -483,6 +483,10 @@ function SequentialSearchSection({ onNavigate }) {
     let found = false;
     let position = -1;
 
+    // Velocidades estándar (en ms): Muy Lento, Lento, Normal, Rápido, Muy Rápido
+    const delays = [2000, 1500, 1000, 600, 300];
+    const delay = delays[simulationSpeed - 1];
+
     // Simular búsqueda secuencial paso a paso
     for (let i = 0; i < memoryArray.length; i++) {
       steps++;
@@ -495,7 +499,7 @@ function SequentialSearchSection({ onNavigate }) {
       setStructureData(highlightedStructure);
 
       // Pausa para visualización
-      await new Promise(resolve => setTimeout(resolve, 1000 / simulationSpeed));
+      await new Promise(resolve => setTimeout(resolve, delay));
 
       if (memoryArray[i] === formattedKey) {
         found = true;

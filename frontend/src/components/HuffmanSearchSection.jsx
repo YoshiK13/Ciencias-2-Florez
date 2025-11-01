@@ -759,45 +759,34 @@ function HuffmanSearchSection({ onNavigate }) {
       return 1.0;
     }
 
-    // Obtener dimensiones del contenedor
     const containerWidth = treeContainerRef.current.clientWidth;
     const containerHeight = treeContainerRef.current.clientHeight;
 
-    // Calcular dimensiones del árbol
     const maxLevel = Math.max(...Object.values(treeStructure).map(node => node.level));
     const levelHeight = 100;
     const treeHeight = (maxLevel + 1) * levelHeight + 100;
 
-    // Contar hojas para estimar ancho
     const leafCount = Object.values(treeStructure).filter(node => node.isLeaf).length;
     const MIN_HORIZONTAL_SPACING = 100;
     const estimatedTreeWidth = Math.max(1200, leafCount * MIN_HORIZONTAL_SPACING + 400);
 
-    // Calcular factores de escala para ancho y alto usando 95% del contenedor
-    const widthScale = (containerWidth * 0.95) / estimatedTreeWidth;
-    const heightScale = (containerHeight * 0.95) / treeHeight;
+    const widthScale = (containerWidth * 0.90) / estimatedTreeWidth;
+    const heightScale = (containerHeight * 0.90) / treeHeight;
 
-    // Usar el menor de los dos para asegurar que el árbol completo sea visible
     let optimalScale = Math.min(widthScale, heightScale);
 
-    // Ajustar según el tamaño del contenedor para diferentes dispositivos
-    // En pantallas más pequeñas, hacer el zoom base más conservador
-    if (containerWidth < 768) {
-      // Móvil: más compacto
-      optimalScale = optimalScale * 1.0;
-    } else if (containerWidth < 1024) {
-      // Tablet: medio
+    if (containerWidth < 600) {
       optimalScale = optimalScale * 1.2;
+    } else if (containerWidth < 900) {
+      optimalScale = optimalScale * 1.15;
     } else {
-      // Desktop: más espacioso (reducido un 10% respecto a antes: 1.5 * 0.9 = 1.35)
-      optimalScale = optimalScale * 1.35;
+      optimalScale = optimalScale * 1.0;
     }
 
-    // Limitar la escala base para mantener usabilidad
-    return Math.max(0.3, Math.min(3.0, optimalScale));
+    return Math.max(0.3, Math.min(2.5, optimalScale));
   }, [treeStructure]);
 
-  // Ajustar escala base automáticamente cuando se crea o modifica el árbol
+  // Ajustar escala base automáticamente cuando se crea o modifica el árbol, o cuando cambia el tamaño del contenedor
   React.useEffect(() => {
     if (Object.keys(treeStructure).length > 0) {
       const optimalScale = calculateOptimalBaseScale();
@@ -805,6 +794,25 @@ function HuffmanSearchSection({ onNavigate }) {
       setTreeZoom(1.0); // Resetear zoom del usuario a 100%
       setTreePan({ x: 0, y: 0 });
     }
+  }, [treeStructure, calculateOptimalBaseScale]);
+
+  // Observar cambios en el tamaño del contenedor para recalcular la escala adaptativa
+  React.useEffect(() => {
+    if (!treeContainerRef.current || Object.keys(treeStructure).length === 0) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      // Recalcular escala cuando cambie el tamaño del contenedor (ej: al cerrar/abrir sidebar)
+      const optimalScale = calculateOptimalBaseScale();
+      setBaseScale(optimalScale);
+      setTreeZoom(1.0); // Resetear zoom del usuario a 100%
+      setTreePan({ x: 0, y: 0 });
+    });
+
+    resizeObserver.observe(treeContainerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
   }, [treeStructure, calculateOptimalBaseScale]);
 
   const resetTreeView = () => {

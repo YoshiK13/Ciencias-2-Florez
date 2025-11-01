@@ -44,6 +44,13 @@ function HashFunctionSection({ onNavigate }) {
   // Estado para arreglos anidados (solo para método 'arreglos')
   const [nestedArrays, setNestedArrays] = useState([]);
   
+  // Estados para visualización de búsqueda
+  const [searchHighlights, setSearchHighlights] = useState({
+    mainMemory: [], // Array de índices a iluminar en memoria principal
+    nestedArrays: {}, // {arrayId: [índices]} para iluminar en arreglos anidados
+    chainElements: {} // {posición: [índices de elementos]} para encadenamiento
+  });
+  
   // Estados para mensajes informativos
   const [message, setMessage] = useState({ text: '', type: '' });
   
@@ -54,9 +61,9 @@ function HashFunctionSection({ onNavigate }) {
   // Estado temporal para la visualización de la estructura
   const [structureData, setStructureData] = useState([]);
   
-  // Estados para pan y zoom del contenedor de visualización
-  const [visualPan, setVisualPan] = useState({ x: 0, y: 0 });
+  // Estados para zoom y pan del contenedor de visualización
   const [visualZoom, setVisualZoom] = useState(1.0); // Zoom de 0.3 (30%) a 3.0 (300%)
+  const [visualPan, setVisualPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const visualContainerRef = React.useRef(null);
@@ -134,24 +141,24 @@ function HashFunctionSection({ onNavigate }) {
 
   // Funciones para pan/arrastre del contenedor de visualización
   const handleVisualMouseDown = (e) => {
-    e.preventDefault();
-    if (e.button === 0) { // Solo botón izquierdo
-      setIsDragging(true);
-      setDragStart({
-        x: e.clientX - visualPan.x,
-        y: e.clientY - visualPan.y
-      });
-    }
+    // Solo arrastrar con botón izquierdo
+    if (e.button !== 0) return;
+    
+    setIsDragging(true);
+    setDragStart({
+      x: e.clientX - visualPan.x,
+      y: e.clientY - visualPan.y
+    });
+    e.preventDefault(); // Prevenir selección de texto
   };
 
   const handleVisualMouseMove = (e) => {
-    e.preventDefault();
-    if (isDragging) {
-      setVisualPan({
-        x: e.clientX - dragStart.x,
-        y: e.clientY - dragStart.y
-      });
-    }
+    if (!isDragging) return;
+    
+    const newX = e.clientX - dragStart.x;
+    const newY = e.clientY - dragStart.y;
+    
+    setVisualPan({ x: newX, y: newY });
   };
 
   const handleVisualMouseUp = () => {
@@ -163,28 +170,25 @@ function HashFunctionSection({ onNavigate }) {
   };
 
   const centerVisualView = useCallback(() => {
-    if (visualContainerRef.current) {
-      const container = visualContainerRef.current;
-      const content = container.querySelector('.main-memory-container');
-      
-      if (content) {
-        const containerWidth = container.clientWidth;
-        const containerHeight = container.clientHeight;
-        const contentWidth = content.offsetWidth;
-        const contentHeight = content.offsetHeight;
-        
-        // Calcular el centrado
-        const centerX = (containerWidth - contentWidth) / 2;
-        const centerY = (containerHeight - contentHeight) / 2;
-        
-        setVisualPan({ x: centerX, y: centerY });
-      }
-    }
-  }, []);
+    if (!visualContainerRef.current) return;
+    
+    // Centrar la vista en el contenido
+    const container = visualContainerRef.current;
+    const contentWidth = container.scrollWidth;
+    const contentHeight = container.scrollHeight;
+    const containerWidth = container.clientWidth;
+    const containerHeight = container.clientHeight;
+    
+    // Calcular pan para centrar el contenido
+    const centerX = (containerWidth - contentWidth * visualZoom) / 2;
+    const centerY = (containerHeight - contentHeight * visualZoom) / 2;
+    
+    setVisualPan({ x: centerX, y: centerY });
+  }, [visualZoom]);
 
   const resetVisualView = () => {
     setVisualZoom(1.0); // Resetear a 100%
-    centerVisualView();
+    setVisualPan({ x: 0, y: 0 }); // Resetear pan
   };
 
   // Efecto para centrar la vista cuando se crea o actualiza la estructura
@@ -977,128 +981,135 @@ function HashFunctionSection({ onNavigate }) {
     }
 
     setIsSimulating(true);
+    
+    // Limpiar highlights anteriores
+    setSearchHighlights({
+      mainMemory: [],
+      nestedArrays: {},
+      chainElements: {}
+    });
+    
     let found = false;
     let position = -1;
     let steps = 0;
+    let foundLocation = '';
     const activeCollisionMethod = isStructureCreated ? currentStructureConfig.collisionMethod : collisionMethod;
+
+    // Calcular velocidad de animación basada en simulationSpeed
+    const delays = [2000, 1500, 1000, 600, 300]; // Muy lento a muy rápido
+    const delay = delays[simulationSpeed - 1];
 
     // Calcular posición hash inicial
     const hashIndex = applyHashFunction(formattedKey);
     let currentIndex = hashIndex;
     
-    // Búsqueda según el método de colisión
+    // Búsqueda visual según el método de colisión
     if (activeCollisionMethod === 'encadenamiento') {
-      // Encadenamiento: buscar en la lista enlazada mostrando cada elemento
+      // Encadenamiento: buscar en la lista enlazada con visualización
       steps = 1;
       
-      // Destacar posición hash
-      const highlightedStructure = structureData.map((item, index) => ({
-        ...item,
-        isHighlighted: index === hashIndex
-      }));
-      setStructureData(highlightedStructure);
-      
-      showMessage(`Buscando en posición hash ${hashIndex + 1}...`, 'info');
-      await new Promise(resolve => setTimeout(resolve, 1000 / simulationSpeed));
+      // Iluminar posición inicial
+      setSearchHighlights({
+        mainMemory: [hashIndex],
+        nestedArrays: {},
+        chainElements: {}
+      });
+      await new Promise(resolve => setTimeout(resolve, delay));
       
       const chain = memoryArray[hashIndex];
       if (Array.isArray(chain) && chain.length > 0) {
-        // Recorrer cada elemento de la cadena visualmente
-        showMessage(`Revisando cadena en posición ${hashIndex + 1} (${chain.length} elementos)...`, 'info');
-        await new Promise(resolve => setTimeout(resolve, 800 / simulationSpeed));
-        
         for (let i = 0; i < chain.length; i++) {
           steps++;
-          showMessage(`Comparando con elemento ${i + 1} de la cadena: "${chain[i]}"`, 'info');
-          await new Promise(resolve => setTimeout(resolve, 800 / simulationSpeed));
+          
+          // Iluminar elemento actual en la cadena
+          setSearchHighlights({
+            mainMemory: [hashIndex],
+            nestedArrays: {},
+            chainElements: { [hashIndex]: [i] }
+          });
+          await new Promise(resolve => setTimeout(resolve, delay));
           
           if (chain[i] === formattedKey) {
             found = true;
             position = hashIndex;
+            foundLocation = `en cadena de posición ${hashIndex + 1}, elemento ${i + 1}/${chain.length}`;
             break;
           }
         }
-      } else {
-        showMessage(`Posición ${hashIndex + 1} está vacía`, 'info');
-        await new Promise(resolve => setTimeout(resolve, 800 / simulationSpeed));
       }
     } else if (activeCollisionMethod === 'arreglos') {
-      // Arreglos: buscar primero en memoria principal, luego en todos los arreglos anidados
+      // Arreglos: buscar con visualización en memoria principal y arreglos anidados
       steps = 1;
       
-      // Destacar posición hash en memoria principal
-      const highlightedStructure = structureData.map((item, index) => ({
-        ...item,
-        isHighlighted: index === hashIndex
-      }));
-      setStructureData(highlightedStructure);
-      
-      showMessage(`Buscando en Memoria Principal posición ${hashIndex + 1}...`, 'info');
-      await new Promise(resolve => setTimeout(resolve, 1000 / simulationSpeed));
+      // Iluminar posición en memoria principal
+      setSearchHighlights({
+        mainMemory: [hashIndex],
+        nestedArrays: {},
+        chainElements: {}
+      });
+      await new Promise(resolve => setTimeout(resolve, delay));
       
       if (memoryArray[hashIndex] === formattedKey) {
         // Encontrada en memoria principal
         found = true;
         position = hashIndex;
-        showMessage(`Comparando con "${memoryArray[hashIndex]}" en Memoria Principal`, 'info');
-        await new Promise(resolve => setTimeout(resolve, 800 / simulationSpeed));
+        foundLocation = `en Memoria Principal posición ${hashIndex + 1}`;
       } else if (memoryArray[hashIndex] === null) {
         // Posición vacía, la clave no existe
         found = false;
-        showMessage(`Posición ${hashIndex + 1} de Memoria Principal está vacía`, 'info');
-        await new Promise(resolve => setTimeout(resolve, 800 / simulationSpeed));
       } else {
-        // Hay colisión, buscar secuencialmente en todos los arreglos anidados en la misma posición
-        showMessage(`Colisión detectada: "${memoryArray[hashIndex]}" en Memoria Principal. Buscando en arreglos anidados...`, 'info');
-        await new Promise(resolve => setTimeout(resolve, 1000 / simulationSpeed));
-        
-        // Iterar por cada arreglo anidado
+        // Hay colisión, buscar secuencialmente en todos los arreglos anidados
         for (let arrayIdx = 0; arrayIdx < nestedArrays.length; arrayIdx++) {
           const nestedArray = nestedArrays[arrayIdx];
           
           if (nestedArray && nestedArray.array && nestedArray.array[hashIndex] !== undefined) {
             steps++;
             
-            showMessage(`Revisando Arreglo ${nestedArray.id} posición ${hashIndex + 1}...`, 'info');
-            await new Promise(resolve => setTimeout(resolve, 1000 / simulationSpeed));
+            // Iluminar posición en arreglo anidado
+            setSearchHighlights({
+              mainMemory: [hashIndex],
+              nestedArrays: { [nestedArray.id]: [hashIndex] },
+              chainElements: {}
+            });
+            await new Promise(resolve => setTimeout(resolve, delay));
             
             const valueInNestedArray = nestedArray.array[hashIndex];
-            if (valueInNestedArray !== null) {
-              showMessage(`Comparando con "${valueInNestedArray}" en Arreglo ${nestedArray.id}`, 'info');
-              await new Promise(resolve => setTimeout(resolve, 800 / simulationSpeed));
-            }
             
             if (valueInNestedArray === formattedKey) {
               found = true;
               position = hashIndex;
-              showMessage(`Clave "${formattedKey}" encontrada en Arreglo ${nestedArray.id} posición ${position + 1} después de ${steps} comparaciones`, 'success');
+              foundLocation = `en Arreglo ${nestedArray.id} posición ${hashIndex + 1}`;
               break;
             } else if (valueInNestedArray === null) {
-              showMessage(`Posición ${hashIndex + 1} de Arreglo ${nestedArray.id} está vacía. La clave no existe.`, 'info');
-              await new Promise(resolve => setTimeout(resolve, 800 / simulationSpeed));
               break; // Si encontramos un espacio vacío, la clave no existe
             }
           }
         }
       }
     } else {
-      // Direccionamiento abierto (lineal, cuadrático, doble hash, secuencial)
+      // Direccionamiento abierto con visualización paso a paso
+      const visitedPositions = [];
+      
       do {
         steps++;
+        visitedPositions.push(currentIndex);
         
-        // Destacar posición actual
-        const highlightedStructure = structureData.map((item, index) => ({
-          ...item,
-          isHighlighted: index === currentIndex
-        }));
-        setStructureData(highlightedStructure);
-
-        // Pausa para visualización
-        await new Promise(resolve => setTimeout(resolve, 1000 / simulationSpeed));
+        // Iluminar posición actual
+        setSearchHighlights({
+          mainMemory: visitedPositions,
+          nestedArrays: {},
+          chainElements: {}
+        });
+        await new Promise(resolve => setTimeout(resolve, delay));
 
         if (memoryArray[currentIndex] === formattedKey) {
           found = true;
           position = currentIndex;
+          if (currentIndex === hashIndex) {
+            foundLocation = `en posición hash ${position + 1} (sin colisión)`;
+          } else {
+            foundLocation = `en posición ${position + 1} (tras ${steps - 1} colisión(es) desde posición hash ${hashIndex + 1})`;
+          }
           break;
         } else if (memoryArray[currentIndex] === null) {
           // Posición vacía, la clave no existe
@@ -1114,29 +1125,22 @@ function HashFunctionSection({ onNavigate }) {
       } while (steps < structureSize && currentIndex !== hashIndex);
     }
 
-    // Quitar destacado
-    const finalStructure = structureData.map(item => ({
-      ...item,
-      isHighlighted: false
-    }));
-    setStructureData(finalStructure);
-
-    // Mostrar resultado (solo si no se mostró antes en el caso de arreglos anidados)
+    // Mostrar resultado final
     if (found) {
-      // Para arreglos, solo mostrar si se encontró en memoria principal
-      if (activeCollisionMethod === 'arreglos') {
-        if (memoryArray[hashIndex] === formattedKey) {
-          showMessage(`Clave "${formattedKey}" encontrada en Memoria posición ${position + 1} después de ${steps} comparaciones`, 'success');
-        }
-        // Si se encontró en arreglo anidado, ya se mostró el mensaje dentro del loop
-      } else if (activeCollisionMethod === 'encadenamiento') {
-        showMessage(`Clave "${formattedKey}" encontrada en la posición hash ${position + 1} después de ${steps} comparaciones`, 'success');
-      } else {
-        showMessage(`Clave "${formattedKey}" encontrada en la posición ${position + 1} después de ${steps} comparaciones`, 'success');
-      }
+      showMessage(`Clave "${formattedKey}" encontrada ${foundLocation} después de ${steps} comparaciones`, 'success');
     } else {
       showMessage(`Clave "${formattedKey}" no se encuentra en la estructura después de ${steps} comparaciones`, 'error');
     }
+
+    // Mantener highlights por un momento antes de limpiar
+    await new Promise(resolve => setTimeout(resolve, delay * 2));
+    
+    // Limpiar highlights
+    setSearchHighlights({
+      mainMemory: [],
+      nestedArrays: {},
+      chainElements: {}
+    });
 
     setIsSimulating(false);
   };
@@ -1211,7 +1215,7 @@ function HashFunctionSection({ onNavigate }) {
 
   const speedLabels = ['Muy Lento', 'Lento', 'Normal', 'Rápido', 'Muy Rápido'];
 
-  // Función para renderizar la estructura optimizada
+  // Función para renderizar la estructura optimizada con highlights de búsqueda
   const renderStructureTable = () => {
     if (!isStructureCreated || structureData.length === 0) {
       return null;
@@ -1220,7 +1224,7 @@ function HashFunctionSection({ onNavigate }) {
     const activeCollisionMethod = isStructureCreated ? currentStructureConfig.collisionMethod : collisionMethod;
     const isChaining = activeCollisionMethod === 'encadenamiento';
 
-    // Obtener todas las posiciones que necesitamos mostrar (primera, última, ocupadas, destacadas)
+    // Obtener todas las posiciones que necesitamos mostrar (primera, última, ocupadas, destacadas, búsqueda)
     const occupiedPositions = structureData
       .map((item, index) => ({ ...item, index }))
       .filter(item => {
@@ -1234,6 +1238,9 @@ function HashFunctionSection({ onNavigate }) {
       .map((item, index) => ({ ...item, index }))
       .filter(item => item.isHighlighted);
     
+    // Agregar posiciones con highlights de búsqueda
+    const searchHighlightedPositions = searchHighlights.mainMemory || [];
+    
     // Crear lista de todas las posiciones a mostrar
     const positionsToShow = new Set();
     positionsToShow.add(0); // Primera posición
@@ -1246,6 +1253,9 @@ function HashFunctionSection({ onNavigate }) {
     
     // Agregar posiciones destacadas
     highlightedPositions.forEach(item => positionsToShow.add(item.index));
+    
+    // Agregar posiciones de búsqueda
+    searchHighlightedPositions.forEach(index => positionsToShow.add(index));
     
     // Convertir a array ordenado
     const sortedPositions = Array.from(positionsToShow).sort((a, b) => a - b);
@@ -1262,21 +1272,28 @@ function HashFunctionSection({ onNavigate }) {
             const nextIndex = sortedPositions[arrayIndex + 1];
             const hasGap = nextIndex !== undefined && (nextIndex - currentIndex) > 1;
             
+            // Verificar si esta posición está siendo resaltada por la búsqueda
+            const isSearchHighlighted = searchHighlightedPositions.includes(currentIndex);
+            const chainHighlights = searchHighlights.chainElements?.[currentIndex] || [];
+            
             return (
               <React.Fragment key={currentIndex}>
                 {/* Fila actual */}
-                <div className={`table-row ${item.isHighlighted ? 'highlighted' : ''}`}>
+                <div className={`table-row ${item.isHighlighted || isSearchHighlighted ? 'highlighted' : ''}`}>
                   <span className="row-number">{item.position}</span>
                   {isChaining ? (
                     <div className="cell-memory-chain">
                       {Array.isArray(item.value) && item.value.length > 0 ? (
                         <div className="chain-container">
-                          {item.value.map((key, idx) => (
-                            <React.Fragment key={idx}>
-                              <span className="chain-node">{key}</span>
-                              {idx < item.value.length - 1 && <span className="chain-arrow">→</span>}
-                            </React.Fragment>
-                          ))}
+                          {item.value.map((key, idx) => {
+                            const isChainElementHighlighted = chainHighlights.includes(idx);
+                            return (
+                              <React.Fragment key={idx}>
+                                <span className={`chain-node ${isChainElementHighlighted ? 'chain-highlighted' : ''}`}>{key}</span>
+                                {idx < item.value.length - 1 && <span className="chain-arrow">→</span>}
+                              </React.Fragment>
+                            );
+                          })}
                         </div>
                       ) : (
                         <span className="empty">—</span>
@@ -1304,7 +1321,7 @@ function HashFunctionSection({ onNavigate }) {
     );
   };
 
-  // Renderizar tabla de arreglo anidado
+  // Renderizar tabla de arreglo anidado con highlights de búsqueda
   const renderNestedArrayTable = (nestedArray) => {
     if (!nestedArray || !nestedArray.array) {
       return null;
@@ -1315,6 +1332,9 @@ function HashFunctionSection({ onNavigate }) {
       .map((value, index) => ({ value, index, position: index + 1 }))
       .filter(item => item.value !== null);
     
+    // Obtener highlights de búsqueda para este arreglo
+    const arrayHighlights = searchHighlights.nestedArrays?.[nestedArray.id] || [];
+    
     // Crear lista de posiciones a mostrar
     const positionsToShow = new Set();
     positionsToShow.add(0); // Primera posición
@@ -1324,6 +1344,9 @@ function HashFunctionSection({ onNavigate }) {
     
     // Agregar posiciones ocupadas
     occupiedPositions.forEach(item => positionsToShow.add(item.index));
+    
+    // Agregar posiciones de búsqueda
+    arrayHighlights.forEach(index => positionsToShow.add(index));
     
     // Convertir a array ordenado
     const sortedPositions = Array.from(positionsToShow).sort((a, b) => a - b);
@@ -1341,10 +1364,13 @@ function HashFunctionSection({ onNavigate }) {
             const nextIndex = sortedPositions[arrayIndex + 1];
             const hasGap = nextIndex !== undefined && (nextIndex - currentIndex) > 1;
             
+            // Verificar si esta posición está siendo resaltada por la búsqueda
+            const isSearchHighlighted = arrayHighlights.includes(currentIndex);
+            
             return (
               <React.Fragment key={currentIndex}>
                 {/* Fila actual */}
-                <div className="table-row">
+                <div className={`table-row ${isSearchHighlighted ? 'highlighted' : ''}`}>
                   <span className="row-number">{position}</span>
                   <span className={`cell-memory ${!value ? 'empty' : ''}`}>
                     {value || '—'}
@@ -1683,15 +1709,11 @@ function HashFunctionSection({ onNavigate }) {
                 display: 'flex', 
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: '10px',
-                padding: '10px',
-                backgroundColor: '#f8f9fa',
-                borderRadius: '8px',
-                border: '1px solid #e0e0e0'
+                marginBottom: '10px'
               }}>
                 {/* Instrucciones a la izquierda */}
                 <div className="tree-instructions">
-                  <p style={{ margin: 0 }}><strong>Arrastrar:</strong> Click y mantén para mover | <strong>Zoom:</strong> Control de zoom en la ventana</p>
+                  <p style={{ margin: 0 }}><strong>Arrastrar:</strong> Click y mantén para mover la vista | <strong>Zoom:</strong> Control de zoom en la ventana</p>
                 </div>
                 
                 {/* Controles a la derecha */}
@@ -1724,14 +1746,10 @@ function HashFunctionSection({ onNavigate }) {
                 </div>
               </div>
               
-              {/* Visualización de la estructura de datos con sistema de arrastre */}
+              {/* Visualización de la estructura de datos con sistema de arrastre mejorado */}
               <div 
                 ref={visualContainerRef}
                 className="data-structure-view"
-                onMouseDown={handleVisualMouseDown}
-                onMouseMove={handleVisualMouseMove}
-                onMouseUp={handleVisualMouseUp}
-                onMouseLeave={handleVisualMouseLeave}
                 style={{
                   cursor: isDragging ? 'grabbing' : 'grab',
                   overflow: 'hidden',
@@ -1741,18 +1759,26 @@ function HashFunctionSection({ onNavigate }) {
                   maxHeight: '380px',
                   border: '1px solid #ddd',
                   borderRadius: '8px',
-                  padding: '10px',
-                  display: 'block'
+                  backgroundColor: '#fafafa'
                 }}
+                onMouseDown={handleVisualMouseDown}
+                onMouseMove={handleVisualMouseMove}
+                onMouseUp={handleVisualMouseUp}
+                onMouseLeave={handleVisualMouseLeave}
               >
                 <div 
                   style={{
                     transform: `translate(${visualPan.x}px, ${visualPan.y}px) scale(${visualZoom})`,
-                    transformOrigin: 'top left',
-                    transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+                    transformOrigin: '0 0',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
                     display: 'flex',
                     gap: '40px',
-                    alignItems: 'flex-start'
+                    alignItems: 'flex-start',
+                    padding: '20px',
+                    minWidth: 'max-content',
+                    userSelect: 'none'
                   }}
                 >
                   <div className="main-memory-container">
@@ -1761,14 +1787,14 @@ function HashFunctionSection({ onNavigate }) {
                   
                   {/* Mostrar arreglos anidados si el método es 'arreglos' */}
                   {(isStructureCreated ? currentStructureConfig.collisionMethod : collisionMethod) === 'arreglos' && nestedArrays.length > 0 && (
-                    <div className="nested-arrays-container" style={{ display: 'flex', flexDirection: 'row', gap: '40px' }}>
+                    <>
                       {nestedArrays.map((nestedArray) => (
                         <div key={nestedArray.id} className="nested-array-section">
                           <h4>Arreglo {nestedArray.id}</h4>
                           {renderNestedArrayTable(nestedArray)}
                         </div>
                       ))}
-                    </div>
+                    </>
                   )}
                 </div>
               </div>

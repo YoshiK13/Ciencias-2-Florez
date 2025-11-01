@@ -42,7 +42,8 @@ function TrieSearchSection({ onNavigate }) {
   const [historyIndex, setHistoryIndex] = useState(-1);
   
   // Estados para zoom y pan del árbol
-  const [treeZoom, setTreeZoom] = useState(1.0); // 1.0 = 100% (escala de 0.5 a 3.0)
+  const [treeZoom, setTreeZoom] = useState(1.0); // Vuelto a 1.0, ahora usaremos baseScale para adaptar
+  const [baseScale, setBaseScale] = useState(1.0); // Escala base calculada automáticamente
   const [treePan, setTreePan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -825,6 +826,68 @@ function TrieSearchSection({ onNavigate }) {
     setIsDragging(false);
   };
 
+  // Calcular escala base óptima basada en dimensiones del árbol
+  const calculateOptimalBaseScale = React.useCallback(() => {
+    if (Object.keys(treeStructure).length === 0 || !treeContainerRef.current) {
+      return 1.0;
+    }
+
+    const containerWidth = treeContainerRef.current.clientWidth;
+    const containerHeight = treeContainerRef.current.clientHeight;
+
+    const maxLevel = Math.max(...Object.values(treeStructure).map(node => node.level || 0));
+    const levelHeight = 100;
+    const treeHeight = (maxLevel + 1) * levelHeight + 100;
+
+    const nodeCount = Object.keys(treeStructure).length;
+    const MIN_HORIZONTAL_SPACING = 100;
+    const estimatedTreeWidth = Math.max(1000, nodeCount * MIN_HORIZONTAL_SPACING + 300);
+
+    const widthScale = (containerWidth * 0.90) / estimatedTreeWidth;
+    const heightScale = (containerHeight * 0.90) / treeHeight;
+
+    let optimalScale = Math.min(widthScale, heightScale);
+
+    if (containerWidth < 600) {
+      optimalScale = optimalScale * 1.2;
+    } else if (containerWidth < 900) {
+      optimalScale = optimalScale * 1.15;
+    } else {
+      optimalScale = optimalScale * 1.0;
+    }
+
+    return Math.max(0.3, Math.min(2.5, optimalScale));
+  }, [treeStructure]);
+
+  // Ajustar escala base automáticamente cuando se crea o modifica el árbol, o cuando cambia el tamaño del contenedor
+  React.useEffect(() => {
+    if (Object.keys(treeStructure).length > 0) {
+      const optimalScale = calculateOptimalBaseScale();
+      setBaseScale(optimalScale);
+      setTreeZoom(1.0); // Resetear zoom del usuario a 100%
+      setTreePan({ x: 0, y: 0 });
+    }
+  }, [treeStructure, calculateOptimalBaseScale]);
+
+  // Observar cambios en el tamaño del contenedor para recalcular la escala adaptativa
+  React.useEffect(() => {
+    if (!treeContainerRef.current || Object.keys(treeStructure).length === 0) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      // Recalcular escala cuando cambie el tamaño del contenedor (ej: al cerrar/abrir sidebar)
+      const optimalScale = calculateOptimalBaseScale();
+      setBaseScale(optimalScale);
+      setTreeZoom(1.0); // Resetear zoom del usuario a 100%
+      setTreePan({ x: 0, y: 0 });
+    });
+
+    resizeObserver.observe(treeContainerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [treeStructure, calculateOptimalBaseScale]);
+
   const resetTreeView = () => {
     setTreeZoom(1.0); // Resetear a 1.0 (100%)
     setTreePan({ x: 0, y: 0 });
@@ -1033,7 +1096,7 @@ function TrieSearchSection({ onNavigate }) {
             height={svgHeight} 
             viewBox={`0 0 ${svgWidth} ${svgHeight}`}
             style={{
-              transform: `translate(${treePan.x}px, ${treePan.y}px) scale(${treeZoom})`,
+              transform: `translate(${treePan.x}px, ${treePan.y}px) scale(${baseScale * treeZoom})`,
               transformOrigin: 'center center',
               transition: isDragging ? 'none' : 'transform 0.1s ease-out'
             }}

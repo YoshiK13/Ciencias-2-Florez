@@ -733,31 +733,33 @@ function ResiduosSearchSection({ onNavigate }) {
     const MIN_HORIZONTAL_SPACING = 120;
     const estimatedTreeWidth = Math.max(1200, leafCount * MIN_HORIZONTAL_SPACING + 400);
 
-    // Calcular factores de escala para ancho y alto usando 95% del contenedor
-    const widthScale = (containerWidth * 0.95) / estimatedTreeWidth;
-    const heightScale = (containerHeight * 0.95) / treeHeight;
+    // Calcular escalas que harían que el árbol llene el contenedor
+    // Usar 90% del espacio disponible para dejar margen
+    const widthScale = (containerWidth * 0.90) / estimatedTreeWidth;
+    const heightScale = (containerHeight * 0.90) / treeHeight;
 
-    // Usar el menor de los dos para asegurar que el árbol completo sea visible
+    // Usar el menor de los dos para que TODO el árbol sea visible
     let optimalScale = Math.min(widthScale, heightScale);
 
-    // Ajustar según el tamaño del contenedor para diferentes dispositivos
-    // En pantallas más pequeñas, hacer el zoom base más conservador
-    if (containerWidth < 768) {
-      // Móvil: más compacto
-      optimalScale = optimalScale * 0.85;
-    } else if (containerWidth < 1024) {
-      // Tablet: medio
-      optimalScale = optimalScale * 1.0;
-    } else {
-      // Desktop: más compacto para que se vea completo
+    // IMPORTANTE: No aplicar multiplicadores excesivos
+    // Solo un pequeño boost para pantallas muy pequeñas
+    if (containerWidth < 600) {
+      // Pantallas muy pequeñas: pequeño boost
       optimalScale = optimalScale * 1.2;
+    } else if (containerWidth < 900) {
+      // Pantallas pequeñas/medianas: boost moderado
+      optimalScale = optimalScale * 1.15;
+    } else {
+      // Pantallas grandes: sin boost adicional
+      optimalScale = optimalScale * 1.0;
     }
 
-    // Limitar la escala base para mantener usabilidad
-    return Math.max(0.3, Math.min(3.0, optimalScale));
+    // Limitar la escala para mantener usabilidad
+    // Mínimo 0.3, máximo 2.5 para evitar árboles cortados
+    return Math.max(0.3, Math.min(2.5, optimalScale));
   }, [treeStructure]);
 
-  // Ajustar escala base automáticamente cuando se crea o modifica el árbol
+  // Ajustar escala base automáticamente cuando se crea o modifica el árbol, o cuando cambia el tamaño del contenedor
   React.useEffect(() => {
     if (Object.keys(treeStructure).length > 0) {
       const optimalScale = calculateOptimalBaseScale();
@@ -765,6 +767,25 @@ function ResiduosSearchSection({ onNavigate }) {
       setTreeZoom(1.0); // Resetear zoom del usuario a 100%
       setTreePan({ x: 0, y: 0 });
     }
+  }, [treeStructure, calculateOptimalBaseScale]);
+
+  // Observar cambios en el tamaño del contenedor para recalcular la escala adaptativa
+  React.useEffect(() => {
+    if (!treeContainerRef.current || Object.keys(treeStructure).length === 0) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      // Recalcular escala cuando cambie el tamaño del contenedor (ej: al cerrar/abrir sidebar)
+      const optimalScale = calculateOptimalBaseScale();
+      setBaseScale(optimalScale);
+      setTreeZoom(1.0); // Resetear zoom del usuario a 100%
+      setTreePan({ x: 0, y: 0 });
+    });
+
+    resizeObserver.observe(treeContainerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
   }, [treeStructure, calculateOptimalBaseScale]);
 
   const resetTreeView = () => {
