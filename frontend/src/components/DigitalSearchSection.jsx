@@ -784,12 +784,13 @@ function DigitalSearchSection({ onNavigate }) {
 
     let optimalScale = Math.min(widthScale, heightScale);
 
+    // Aumentados ~66% especialmente en resoluciones pequeñas
     if (containerWidth < 600) {
-      optimalScale = optimalScale * 1.2;
+      optimalScale = optimalScale * 1.99;
     } else if (containerWidth < 900) {
-      optimalScale = optimalScale * 1.15;
+      optimalScale = optimalScale * 1.90;
     } else {
-      optimalScale = optimalScale * 1.0;
+      optimalScale = optimalScale * 1.66;
     }
 
     return Math.max(0.3, Math.min(2.5, optimalScale));

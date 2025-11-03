@@ -1754,9 +1754,9 @@ function HashFunctionSection({ onNavigate }) {
                   cursor: isDragging ? 'grabbing' : 'grab',
                   overflow: 'hidden',
                   position: 'relative',
-                  height: '380px',
-                  minHeight: '380px',
-                  maxHeight: '380px',
+                  height: '420px',
+                  minHeight: '420px',
+                  maxHeight: '420px',
                   border: '1px solid #ddd',
                   borderRadius: '8px',
                   backgroundColor: '#fafafa'

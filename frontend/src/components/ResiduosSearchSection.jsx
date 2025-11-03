@@ -741,17 +741,17 @@ function ResiduosSearchSection({ onNavigate }) {
     // Usar el menor de los dos para que TODO el árbol sea visible
     let optimalScale = Math.min(widthScale, heightScale);
 
-    // IMPORTANTE: No aplicar multiplicadores excesivos
-    // Solo un pequeño boost para pantallas muy pequeñas
+    // Aplicar multiplicadores para mejor visibilidad
+    // Aumentados ~66% en total especialmente en resoluciones pequeñas
     if (containerWidth < 600) {
-      // Pantallas muy pequeñas: pequeño boost
-      optimalScale = optimalScale * 1.2;
+      // Pantallas muy pequeñas: boost mayor (~66%)
+      optimalScale = optimalScale * 1.99;
     } else if (containerWidth < 900) {
-      // Pantallas pequeñas/medianas: boost moderado
-      optimalScale = optimalScale * 1.15;
+      // Pantallas pequeñas/medianas: boost mayor (~66%)
+      optimalScale = optimalScale * 1.90;
     } else {
-      // Pantallas grandes: sin boost adicional
-      optimalScale = optimalScale * 1.0;
+      // Pantallas grandes: boost moderado (~66%)
+      optimalScale = optimalScale * 1.66;
     }
 
     // Limitar la escala para mantener usabilidad
