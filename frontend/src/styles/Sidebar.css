@@ -1,202 +1,165 @@
-/* Sidebar Component Styles */
-.sidebar {
+/* Nueva Barra Lateral - CSS Completamente Nuevo */
+
+/* Variables CSS para consistencia */
+:root {
+  --sidebar-width: 280px;
+  --sidebar-bg: linear-gradient(180deg, #2c3e50, #34495e);
+  --sidebar-text: #ffffff;
+  --sidebar-hover: rgba(74, 144, 226, 0.2);
+  --sidebar-active: linear-gradient(135deg, #3498db, #2980b9);
+  --sidebar-border: #4a5568;
+  --sidebar-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Contenedor principal del sidebar */
+.sidebar-new {
   position: fixed;
   top: var(--header-height);
   left: 0;
   width: var(--sidebar-width);
   height: calc(100vh - var(--header-height));
-  background: linear-gradient(180deg, #2c3e50, #34495e);
-  border-right: 1px solid var(--border-color);
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
   transform: translateX(0);
   transition: var(--transition);
   z-index: 999;
   overflow-y: auto;
-  box-shadow: var(--shadow);
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
 }
 
-.sidebar.hidden {
+.sidebar-new.hidden {
   transform: translateX(-100%);
 }
 
+/* Header del sidebar */
 .sidebar-header {
   padding: 20px;
-  border-bottom: 1px solid var(--border-color);
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-  color: white;
+  border-bottom: 1px solid var(--sidebar-border);
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: var(--sidebar-text);
 }
 
 .sidebar-header h2 {
+  margin: 0;
   font-size: 1.2rem;
   font-weight: 600;
 }
 
-.sidebar-menu {
-  list-style: none;
+/* Navegación */
+.sidebar-nav {
   padding: 20px 0;
 }
 
-.menu-item {
-  margin: 5px 0;
+/* Items del sidebar */
+.sidebar-item {
+  margin: 2px 0;
 }
 
-.menu-link {
+/* Contenido principal del item */
+.sidebar-item-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 15px 20px;
-  color: #ffffff;
-  text-decoration: none;
+  color: var(--sidebar-text);
+  cursor: pointer;
   transition: var(--transition);
   border-left: 4px solid transparent;
-  font-weight: 500;
-  cursor: pointer;
+  position: relative;
 }
 
-.menu-link:hover {
-  background: rgba(74, 144, 226, 0.2);
-  color: #ffffff;
-  border-left-color: var(--primary-color);
-}
-
-.menu-item.active .menu-link {
-  background: linear-gradient(135deg, var(--primary-color), #2980b9);
-  color: #ffffff;
-  border-left-color: var(--accent-color);
-  font-weight: 600;
-  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
-}
-
-.menu-item-content {
+/* Parte principal del item (icono + texto) */
+.sidebar-item-main {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex: 1;
 }
 
-.menu-icon {
-  font-size: 1.1rem;
-  width: 20px;
-  text-align: center;
-  color: #ffffff;
+/* Etiqueta del item */
+.sidebar-item-label {
+  font-weight: 500;
+  font-size: 0.95rem;
 }
 
-.dropdown-arrow {
-  font-size: 0.8rem;
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  margin-left: auto;
+/* Chevron para items expandibles */
+.chevron {
+  transition: transform 0.3s ease;
+  opacity: 0.7;
 }
 
-.menu-item.open .dropdown-arrow {
+.chevron.expanded {
   transform: rotate(180deg);
 }
 
-/* Submenu */
-.submenu {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), 
-              opacity 0.3s ease;
-  background: linear-gradient(135deg, #34495e, #2c3e50);
-  border-radius: 0 0 12px 12px;
-  opacity: 0;
+/* Estados del item */
+.sidebar-item-content:hover {
+  background: var(--sidebar-hover);
+  border-left-color: #3498db;
 }
 
-.submenu.open {
-  max-height: 800px;
-  opacity: 1;
-  animation: slideDown 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.submenu-item {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.submenu-item:last-child {
-  border-bottom: none;
-}
-
-.submenu-link {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 20px 12px 40px;
-  color: #f8f9fa;
-  text-decoration: none;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-size: 0.9rem;
-  cursor: pointer;
-}
-
-.submenu-link:hover {
-  background: rgba(74, 144, 226, 0.25);
-  color: #ffffff;
-  padding-left: 45px;
-  transform: translateX(2px);
-}
-
-.submenu-item.active .submenu-link {
-  background: rgba(74, 144, 226, 0.35);
-  color: #ffffff;
+/* ESTADO ACTIVO - SOLO para el item exacto */
+.sidebar-item.active > .sidebar-item-content {
+  background: var(--sidebar-active);
+  border-left-color: #3498db;
   font-weight: 600;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--sidebar-shadow);
 }
 
-/* Submenu nivel 2 */
-.submenu-level-2 {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+.sidebar-item.active > .sidebar-item-content .sidebar-item-label {
+  font-weight: 600;
+}
+
+/* Contenedor de hijos */
+.sidebar-children {
   max-height: 0;
   overflow: hidden;
-  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
-              opacity 0.3s ease;
-  background: rgba(0, 0, 0, 0.3);
-  opacity: 0;
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba(0, 0, 0, 0.1);
 }
 
-.submenu-level-2.open {
-  max-height: 500px;
-  opacity: 1;
-  animation: fadeIn 0.3s ease-out 0.1s both;
+.sidebar-children.expanded {
+  max-height: 1000px;
 }
 
-.submenu-level-2-item {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+/* Estilos por nivel */
+.sidebar-item.level-1 > .sidebar-item-content {
+  padding-left: 40px;
+  font-size: 0.9rem;
+  background: rgba(0, 0, 0, 0.1);
 }
 
-.submenu-level-2-item:last-child {
-  border-bottom: none;
+.sidebar-item.level-1 > .sidebar-item-content:hover {
+  background: rgba(74, 144, 226, 0.25);
+  padding-left: 45px;
 }
 
-.submenu-level-2-link {
-  display: flex;
-  align-items: center;
-  padding: 10px 20px 10px 60px;
-  color: #e8eaed;
-  text-decoration: none;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-size: 0.85rem;
-  cursor: pointer;
-}
-
-.submenu-level-2-link:hover {
-  background: rgba(74, 144, 226, 0.2);
-  color: #ffffff;
-  padding-left: 65px;
-  transform: translateX(3px);
-}
-
-.submenu-level-2-item.active .submenu-level-2-link {
+.sidebar-item.level-1.active > .sidebar-item-content {
   background: rgba(74, 144, 226, 0.4);
   color: #ffffff;
   font-weight: 600;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
-/* Overlay para móviles */
-.overlay {
+.sidebar-item.level-2 > .sidebar-item-content {
+  padding-left: 60px;
+  font-size: 0.85rem;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.sidebar-item.level-2 > .sidebar-item-content:hover {
+  background: rgba(74, 144, 226, 0.3);
+  padding-left: 65px;
+}
+
+.sidebar-item.level-2.active > .sidebar-item-content {
+  background: rgba(74, 144, 226, 0.5);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* Overlay para móvil */
+.sidebar-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -204,54 +167,54 @@
   height: 100%;
   background: rgba(0, 0, 0, 0.5);
   z-index: 998;
-  opacity: 0;
-  visibility: hidden;
-  transition: var(--transition);
-}
-
-.overlay.active {
-  opacity: 1;
-  visibility: visible;
 }
 
 /* Scrollbar personalizado */
-.sidebar::-webkit-scrollbar {
+.sidebar-new::-webkit-scrollbar {
   width: 6px;
 }
 
-.sidebar::-webkit-scrollbar-track {
-  background: #f1f1f1;
+.sidebar-new::-webkit-scrollbar-track {
+  background: #2c3e50;
 }
 
-.sidebar::-webkit-scrollbar-thumb {
-  background: var(--primary-color);
+.sidebar-new::-webkit-scrollbar-thumb {
+  background: #3498db;
   border-radius: 3px;
 }
 
-.sidebar::-webkit-scrollbar-thumb:hover {
-  background: var(--secondary-color);
+.sidebar-new::-webkit-scrollbar-thumb:hover {
+  background: #2980b9;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-  .sidebar {
+  .sidebar-new {
     transform: translateX(-100%);
     width: 280px;
   }
   
-  .sidebar.active {
+  .sidebar-new.visible {
     transform: translateX(0);
   }
 }
 
 @media (max-width: 480px) {
-  .submenu-link {
-    padding: 10px 12px 10px 30px;
-    font-size: 0.8rem;
+  .sidebar-new {
+    width: 260px;
   }
   
-  .submenu-level-2-link {
-    padding: 8px 12px 8px 45px;
-    font-size: 0.75rem;
+  .sidebar-item-content {
+    padding: 12px 15px;
+  }
+  
+  .sidebar-item.level-1 > .sidebar-item-content {
+    padding-left: 30px;
+    font-size: 0.85rem;
+  }
+  
+  .sidebar-item.level-2 > .sidebar-item-content {
+    padding-left: 45px;
+    font-size: 0.8rem;
   }
 }

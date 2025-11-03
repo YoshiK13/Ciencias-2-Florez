@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import Header from './components/Header';
-import SidebarNew from './components/SidebarNew';
+import Sidebar from './components/Sidebar';
 import MainContent from './components/MainContent';
 import WelcomeSection from './components/WelcomeSection';
 import InternalSearchSection from './components/InternalSearchSection';
@@ -14,6 +14,16 @@ import MultipleResiduosSearchSection from './components/MultipleResiduosSearchSe
 import DigitalSearchSection from './components/DigitalSearchSection';
 import TrieSearchSection from './components/TrieSearchSection';
 import HuffmanSearchSection from './components/HuffmanSearchSection';
+import ExternalSearchSection from './components/ExternalSearchSection';
+import BloquesSearchSection from './components/BloquesSearchSection';
+import DinamicasSearchSection from './components/DinamicasSearchSection';
+import DinamicasCompletasSearchSection from './components/DinamicasCompletasSearchSection';
+import DinamicasParcialesSearchSection from './components/DinamicasParcialesSearchSection';
+import IndicesSearchSection from './components/IndicesSearchSection';
+import IndicesPrimariosSearchSection from './components/IndicesPrimariosSearchSection';
+import IndicesSecundariosSearchSection from './components/IndicesSecundariosSearchSection';
+import IndicesMultinivelSearchSection from './components/IndicesMultinivelSearchSection';
+import IndicesConDatosSearchSection from './components/IndicesConDatosSearchSection';
 import GrafosSection from './components/GrafosSection';
 import InformationSection from './components/InformationSection';
 import { useResponsive } from './hooks/useResponsive';
@@ -199,10 +209,63 @@ function App() {
         );
       case 'external-search':
         return (
-          <div className="section-container">
-            <h1>Búsquedas Externas</h1>
-            <p>Sección en desarrollo...</p>
-          </div>
+          <ExternalSearchSection 
+            onNavigate={handleNavigate}
+          />
+        );
+      case 'bloques':
+        return (
+          <BloquesSearchSection 
+            onNavigate={handleNavigate}
+          />
+        );
+      case 'dinamicas':
+        return (
+          <DinamicasSearchSection 
+            onNavigate={handleNavigate}
+          />
+        );
+      case 'dinamicas-completas':
+        return (
+          <DinamicasCompletasSearchSection 
+            onNavigate={handleNavigate}
+          />
+        );
+      case 'dinamicas-parciales':
+        return (
+          <DinamicasParcialesSearchSection 
+            onNavigate={handleNavigate}
+          />
+        );
+      case 'indices':
+        return (
+          <IndicesSearchSection 
+            onNavigate={handleNavigate}
+          />
+        );
+      case 'indices-primarios':
+        return (
+          <IndicesPrimariosSearchSection 
+            onNavigate={handleNavigate}
+          />
+        );
+      case 'indices-secundarios':
+        return (
+          <IndicesSecundariosSearchSection 
+            onNavigate={handleNavigate}
+          />
+        );
+      case 'indices-multinivel':
+        return (
+          <IndicesMultinivelSearchSection 
+            onNavigate={handleNavigate}
+          />
+        );
+      case 'indices-con-datos':
+        return (
+          <IndicesConDatosSearchSection 
+            onNavigate={handleNavigate}
+          />
         );
       case 'grafos':
         return <GrafosSection />;
@@ -220,7 +283,7 @@ function App() {
         isMenuOpen={sidebarVisible}
       />
       
-      <SidebarNew
+      <Sidebar
         isVisible={sidebarVisible}
         onNavigate={handleNavigate}
         currentSection={currentSection}

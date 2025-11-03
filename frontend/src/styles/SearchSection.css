@@ -458,3 +458,116 @@
   margin: 0;
   line-height: 1.5;
 }
+
+/* Estilos para botones en tres columnas */
+.three-column-buttons {
+  display: flex;
+  gap: 25px;
+  justify-content: center;
+  align-items: stretch;
+  margin: 40px 0;
+  flex-wrap: wrap;
+}
+
+.three-column-buttons .main-option-btn {
+  flex: 1;
+  max-width: 350px;
+  min-width: 280px;
+  min-height: 280px;
+}
+
+/* Grid de 4 columnas para índices */
+.search-methods-grid-four {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 25px;
+  margin: 30px 0;
+}
+
+.search-methods-grid-four .search-method-card {
+  min-height: 250px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Caja de información para secciones en desarrollo */
+.info-box {
+  background: linear-gradient(135deg, #e3f2fd, #f0f4f8);
+  border: 2px solid #90caf9;
+  border-radius: 15px;
+  padding: 30px 40px;
+  margin: 30px 0;
+  box-shadow: 0 4px 15px rgba(52, 152, 219, 0.1);
+}
+
+.info-box h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--primary-color);
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.info-box p {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+
+.info-box strong {
+  color: var(--text-primary);
+}
+
+.info-box ul {
+  margin: 15px 0 0 20px;
+  list-style: disc;
+}
+
+.info-box li {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  margin-bottom: 8px;
+}
+
+/* Descripción de método en tarjetas */
+.method-description {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 10px 0;
+  min-height: 60px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .three-column-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .three-column-buttons .main-option-btn {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .search-methods-grid-four {
+    grid-template-columns: 1fr;
+  }
+
+  .info-box {
+    padding: 20px 25px;
+  }
+
+  .info-box h3 {
+    font-size: 1.3rem;
+  }
+
+  .info-box p {
+    font-size: 1rem;
+  }
+}
