@@ -428,6 +428,11 @@
   background: linear-gradient(to right, #fef2f2, white);
 }
 
+.message-area.warning {
+  border-left-color: #f59e0b;
+  background: linear-gradient(to right, #fffbeb, white);
+}
+
 .message-area.info {
   border-left-color: #3b82f6;
   background: linear-gradient(to right, #eff6ff, white);
