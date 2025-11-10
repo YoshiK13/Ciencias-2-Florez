@@ -654,6 +654,10 @@ function ResiduosSearchSection({ onNavigate }) {
     return actionNames[type] || type;
   };
 
+  // Variables para deshabilitar botones undo/redo
+  const canUndo = historyIndex >= 0;
+  const canRedo = historyIndex < history.length - 1;
+
   const handleUndo = () => {
     if (historyIndex >= 0) {
       const action = history[historyIndex];
@@ -1490,7 +1494,7 @@ function ResiduosSearchSection({ onNavigate }) {
           <button 
             className="action-btn"
             onClick={handleUndo}
-            disabled={historyIndex < 0}
+            disabled={!canUndo}
           >
             <Undo size={18} />
             <span>Deshacer</span>
@@ -1498,7 +1502,7 @@ function ResiduosSearchSection({ onNavigate }) {
           <button 
             className="action-btn"
             onClick={handleRedo}
-            disabled={historyIndex >= history.length - 1}
+            disabled={!canRedo}
           >
             <Redo size={18} />
             <span>Rehacer</span>
