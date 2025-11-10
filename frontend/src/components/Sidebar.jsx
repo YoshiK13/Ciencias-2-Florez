@@ -92,7 +92,7 @@ const MENU_CONFIG = [
         icon: 'network',
         path: 'dinamicas',
         children: [
-          { id: 'dinamicas-completas', label: 'Completas', icon: 'arrow-right', path: 'dinamicas-completas' },
+          { id: 'dinamicas-totales', label: 'Totales', icon: 'arrow-right', path: 'dinamicas-totales' },
           { id: 'dinamicas-parciales', label: 'Parciales', icon: 'scissors', path: 'dinamicas-parciales' }
         ]
       },

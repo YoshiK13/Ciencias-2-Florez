@@ -599,8 +599,8 @@ function DinamicasCompletasSearchSection({ onNavigate }) {
     return {
       fileType: 'DCF', // Dynamic Complete File
       version: '1.0',
-      sectionType: 'dinamicas-completas',
-      sectionName: 'Expansiones Dinámicas Completas',
+      sectionType: 'dinamicas-totales',
+      sectionName: 'Expansiones Dinámicas Totales',
       timestamp: new Date().toISOString(),
       configuration: {
         buckets: currentStructureConfig.buckets,
@@ -622,7 +622,7 @@ function DinamicasCompletasSearchSection({ onNavigate }) {
         totalElements: Object.values(collisions).reduce((sum, arr) => sum + arr.length, 0) + 
                       memoryMatrix.flat().filter(val => val !== null && val !== undefined && val !== '').length,
         occupancy: calculateOccupancy(memoryMatrix, collisions),
-        description: `Estructura de dinámicas completas con ${currentBuckets} cubetas y ${currentRecords} registros`
+        description: `Estructura de dinámicas totales con ${currentBuckets} cubetas y ${currentRecords} registros`
       }
     };
   };
@@ -636,7 +636,7 @@ function DinamicasCompletasSearchSection({ onNavigate }) {
 
     const defaultName = fileName 
       ? fileName.replace('.dcf', '')
-      : `dinamicas-completas-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}`;
+      : `dinamicas-totales-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}`;
 
     const dataToSave = createSaveData();
     const jsonString = JSON.stringify(dataToSave, null, 2);
@@ -647,7 +647,7 @@ function DinamicasCompletasSearchSection({ onNavigate }) {
         const fileHandle = await window.showSaveFilePicker({
           suggestedName: `${defaultName}.dcf`,
           types: [{
-            description: 'Archivos de Dinámicas Completas',
+            description: 'Archivos de Dinámicas Totales',
             accept: {
               'application/json': ['.dcf']
             }
@@ -706,7 +706,7 @@ function DinamicasCompletasSearchSection({ onNavigate }) {
         if ('showOpenFilePicker' in window) {
           const [fileHandle] = await window.showOpenFilePicker({
             types: [{
-              description: 'Archivos de Dinámicas Completas',
+              description: 'Archivos de Dinámicas Totales',
               accept: {
                 'application/json': ['.dcf']
               }
@@ -758,7 +758,7 @@ function DinamicasCompletasSearchSection({ onNavigate }) {
           return;
         }
 
-        if (!loadedData.sectionType || loadedData.sectionType !== 'dinamicas-completas') {
+        if (!loadedData.sectionType || (loadedData.sectionType !== 'dinamicas-totales' && loadedData.sectionType !== 'dinamicas-completas')) {
           showMessage('Este archivo pertenece a otra sección del simulador', 'error');
           return;
         }
@@ -916,7 +916,7 @@ function DinamicasCompletasSearchSection({ onNavigate }) {
   return (
     <div className="hash-container">
       <div className="section-header">
-        <h1>Expansiones Dinámicas Completas</h1>
+        <h1>Expansiones Dinámicas Totales</h1>
       </div>
 
       {/* Sección de Configuración */}

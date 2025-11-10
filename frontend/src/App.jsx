@@ -102,8 +102,8 @@ function App() {
         console.log('Navegando a:', section);
       });
     }
-    // Verificar si hay cambios no guardados en Dinámicas Completas
-    else if (currentSection === 'dinamicas-completas' && window.dinamicasCompletasCheckUnsavedChanges) {
+    // Verificar si hay cambios no guardados en Dinámicas Totales
+    else if (currentSection === 'dinamicas-totales' && window.dinamicasCompletasCheckUnsavedChanges) {
       window.dinamicasCompletasCheckUnsavedChanges(section, () => {
         setCurrentSection(section);
         console.log('Navegando a:', section);
@@ -246,7 +246,7 @@ function App() {
             onNavigate={handleNavigate}
           />
         );
-      case 'dinamicas-completas':
+      case 'dinamicas-totales':
         return (
           <DinamicasCompletasSearchSection 
             onNavigate={handleNavigate}

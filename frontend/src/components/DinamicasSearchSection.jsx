@@ -9,12 +9,12 @@ import '../styles/SearchSection.css';
 function DinamicasSearchSection({ onNavigate }) {
   const dinamicasMethods = [
     {
-      id: 'completas',
-      name: 'Dinámicas Completas',
+      id: 'totales',
+      name: 'Dinámicas Totales',
       description: 'Reorganización completa de la estructura de datos al insertar o eliminar.',
       complexity: 'O(n)',
       icon: CheckCircle,
-      path: 'dinamicas-completas'
+      path: 'dinamicas-totales'
     },
     {
       id: 'parciales',
