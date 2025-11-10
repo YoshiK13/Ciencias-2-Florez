@@ -101,6 +101,20 @@ function App() {
         setCurrentSection(section);
         console.log('Navegando a:', section);
       });
+    }
+    // Verificar si hay cambios no guardados en Dinámicas Completas
+    else if (currentSection === 'dinamicas-completas' && window.dinamicasCompletasCheckUnsavedChanges) {
+      window.dinamicasCompletasCheckUnsavedChanges(section, () => {
+        setCurrentSection(section);
+        console.log('Navegando a:', section);
+      });
+    }
+    // Verificar si hay cambios no guardados en Dinámicas Parciales
+    else if (currentSection === 'dinamicas-parciales' && window.dinamicasParcialesCheckUnsavedChanges) {
+      window.dinamicasParcialesCheckUnsavedChanges(section, () => {
+        setCurrentSection(section);
+        console.log('Navegando a:', section);
+      });
     } else {
       setCurrentSection(section);
       console.log('Navegando a:', section);

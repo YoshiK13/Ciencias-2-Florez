@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import '../styles/SequentialSearchSection.css';
 
-function DinamicasCompletasSearchSection() {
+function DinamicasCompletasSearchSection({ onNavigate }) {
   // ===== ESTADOS DE CONFIGURACIÓN =====
   const [buckets, setBuckets] = useState(2);
   const [records, setRecords] = useState(2);
@@ -62,11 +62,12 @@ function DinamicasCompletasSearchSection() {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const visualContainerRef = useRef(null);
-  const fileInputRef = useRef(null);
   
   // ===== CONTROL DE CAMBIOS NO GUARDADOS =====
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [fileName, setFileName] = useState('');
+  const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
 
   // ===== DELAYS PARA SIMULACIÓN =====
   const delays = [1200, 800, 500, 300, 150];
@@ -142,57 +143,60 @@ function DinamicasCompletasSearchSection() {
   // ===== FUNCIONES DE GESTIÓN DE MATRIZ =====
 
   const handleCreateStructure = () => {
-    // Verificar si hay una estructura previa y cambios no guardados
-    if (isStructureCreated && hasUnsavedChanges) {
-      const confirmCreate = window.confirm(
-        'Ya existe una estructura con cambios no guardados. ¿Desea crear una nueva estructura? ' +
-        'Se perderá todo el progreso no guardado.'
-      );
-      if (!confirmCreate) {
+    // Función que ejecuta la creación real
+    const executeCreate = () => {
+      if (buckets < 2 || records < 2) {
+        showMessage('Las cubetas y registros deben ser al menos 2', 'error');
         return;
       }
-    }
-    
-    if (buckets < 2 || records < 2) {
-      showMessage('Las cubetas y registros deben ser al menos 2', 'error');
+      if (buckets % 2 !== 0) {
+        showMessage('La cantidad de cubetas debe ser par', 'error');
+        return;
+      }
+      if (expansionThreshold < 50 || expansionThreshold > 90) {
+        showMessage('El umbral de expansión debe estar entre 50% y 90%', 'error');
+        return;
+      }
+      if (reductionThreshold < 25) {
+        showMessage('El umbral de reducción debe ser al menos 25%', 'error');
+        return;
+      }
+      if ((expansionThreshold - reductionThreshold) < 15) {
+        showMessage('La diferencia entre expansión y reducción debe ser al menos 15%', 'error');
+        return;
+      }
+      
+      const newMatrix = Array(records).fill(null).map(() => Array(buckets).fill(null));
+      setMemoryMatrix(newMatrix);
+      setCurrentBuckets(buckets);
+      setCurrentRecords(records);
+      setCollisions({});
+      setInsertionHistory([]);
+      setCurrentStructureConfig({
+        buckets,
+        records,
+        expansionThreshold,
+        reductionThreshold,
+        keySize,
+        initialBuckets: buckets
+      });
+      setIsStructureCreated(true);
+      setHasUnsavedChanges(false);
+      setHistory([]);
+      setHistoryIndex(-1);
+      setFileName('');
+      showMessage('Estructura creada exitosamente', 'success');
+    };
+
+    // Verificar si hay una estructura previa y cambios no guardados
+    if (isStructureCreated && hasUnsavedChanges) {
+      setPendingAction({ execute: executeCreate, description: 'crear nueva estructura' });
+      setShowUnsavedWarning(true);
       return;
     }
-    if (buckets % 2 !== 0) {
-      showMessage('La cantidad de cubetas debe ser par', 'error');
-      return;
-    }
-    if (expansionThreshold < 50 || expansionThreshold > 90) {
-      showMessage('El umbral de expansión debe estar entre 50% y 90%', 'error');
-      return;
-    }
-    if (reductionThreshold < 25) {
-      showMessage('El umbral de reducción debe ser al menos 25%', 'error');
-      return;
-    }
-    if ((expansionThreshold - reductionThreshold) < 15) {
-      showMessage('La diferencia entre expansión y reducción debe ser al menos 15%', 'error');
-      return;
-    }
-    
-    const newMatrix = Array(records).fill(null).map(() => Array(buckets).fill(null));
-    setMemoryMatrix(newMatrix);
-    setCurrentBuckets(buckets);
-    setCurrentRecords(records);
-    setCollisions({});
-    setInsertionHistory([]);
-    setCurrentStructureConfig({
-      buckets,
-      records,
-      expansionThreshold,
-      reductionThreshold,
-      keySize,
-      initialBuckets: buckets
-    });
-    setIsStructureCreated(true);
-    setHasUnsavedChanges(false);
-    setHistory([]);
-    setHistoryIndex(-1);
-    showMessage('Estructura creada exitosamente', 'success');
+
+    // Ejecutar directamente si no hay cambios
+    executeCreate();
   };
 
   const saveToHistory = (action) => {
@@ -590,62 +594,298 @@ function DinamicasCompletasSearchSection() {
     showMessage('Acción rehecha', 'info');
   };
 
+  // Función para crear el objeto de datos para guardar
+  const createSaveData = () => {
+    return {
+      fileType: 'DCF', // Dynamic Complete File
+      version: '1.0',
+      sectionType: 'dinamicas-completas',
+      sectionName: 'Expansiones Dinámicas Completas',
+      timestamp: new Date().toISOString(),
+      configuration: {
+        buckets: currentStructureConfig.buckets,
+        records: currentStructureConfig.records,
+        expansionThreshold: currentStructureConfig.expansionThreshold,
+        reductionThreshold: currentStructureConfig.reductionThreshold,
+        keySize: currentStructureConfig.keySize,
+        initialBuckets: currentStructureConfig.initialBuckets
+      },
+      data: {
+        memoryMatrix: memoryMatrix,
+        collisions: collisions,
+        insertionHistory: insertionHistory,
+        currentBuckets: currentBuckets,
+        currentRecords: currentRecords,
+        isStructureCreated: isStructureCreated
+      },
+      metadata: {
+        totalElements: Object.values(collisions).reduce((sum, arr) => sum + arr.length, 0) + 
+                      memoryMatrix.flat().filter(val => val !== null && val !== undefined && val !== '').length,
+        occupancy: calculateOccupancy(memoryMatrix, collisions),
+        description: `Estructura de dinámicas completas con ${currentBuckets} cubetas y ${currentRecords} registros`
+      }
+    };
+  };
+
+  // Función para guardar archivo con selector de ubicación
   const handleSave = async () => {
     if (!isStructureCreated) {
       showMessage('No hay estructura para guardar', 'error');
       return;
     }
+
+    const defaultName = fileName 
+      ? fileName.replace('.dcf', '')
+      : `dinamicas-completas-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}`;
+
+    const dataToSave = createSaveData();
+    const jsonString = JSON.stringify(dataToSave, null, 2);
+
     try {
-      const dataToSave = {
-        config: currentStructureConfig,
-        matrix: memoryMatrix,
-        collisions,
-        insertionHistory,
-        currentBuckets,
-        currentRecords,
-        version: '1.0'
-      };
-      const blob = new Blob([JSON.stringify(dataToSave, null, 2)], { type: 'application/json' });
-      const handle = await window.showSaveFilePicker({
-        suggestedName: fileName || 'dinamicas_completas.dcf',
-        types: [{ description: 'Dinámicas Completas File', accept: { 'application/json': ['.dcf'] } }]
-      });
-      const writable = await handle.createWritable();
-      await writable.write(blob);
-      await writable.close();
-      setFileName(handle.name);
-      setHasUnsavedChanges(false);
-      showMessage('Estructura guardada exitosamente', 'success');
+      // Intentar usar la File System Access API moderna si está disponible
+      if ('showSaveFilePicker' in window) {
+        const fileHandle = await window.showSaveFilePicker({
+          suggestedName: `${defaultName}.dcf`,
+          types: [{
+            description: 'Archivos de Dinámicas Completas',
+            accept: {
+              'application/json': ['.dcf']
+            }
+          }]
+        });
+
+        const writable = await fileHandle.createWritable();
+        await writable.write(jsonString);
+        await writable.close();
+
+        setHasUnsavedChanges(false);
+        setFileName(fileHandle.name);
+        showMessage(`Archivo guardado como: ${fileHandle.name}`, 'success');
+      } else {
+        // Fallback para navegadores que no soportan File System Access API
+        const userFileName = prompt('Ingrese el nombre del archivo:', defaultName);
+        if (!userFileName) {
+          return; // Usuario canceló
+        }
+
+        const finalFileName = userFileName.endsWith('.dcf') ? userFileName : `${userFileName}.dcf`;
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        
+        // Crear enlace de descarga
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = finalFileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        setHasUnsavedChanges(false);
+        setFileName(finalFileName);
+        showMessage(`Archivo guardado como: ${finalFileName}`, 'success');
+      }
     } catch (error) {
       if (error.name !== 'AbortError') {
         showMessage('Error al guardar el archivo', 'error');
-        console.error(error);
+        console.error('Error saving file:', error);
       }
     }
   };
 
-  const loadFromData = (data) => {
-    if (!data.config || !data.matrix) {
-      showMessage('Formato de archivo inválido', 'error');
+  // Función para cargar archivo con selector mejorado
+  const handleLoad = async () => {
+    // Función que ejecuta la carga real
+    const executeLoad = async () => {
+      try {
+        let file = null;
+        let loadedFileName = '';
+        let content = '';
+
+        // Intentar usar la File System Access API moderna si está disponible
+        if ('showOpenFilePicker' in window) {
+          const [fileHandle] = await window.showOpenFilePicker({
+            types: [{
+              description: 'Archivos de Dinámicas Completas',
+              accept: {
+                'application/json': ['.dcf']
+              }
+            }],
+            multiple: false
+          });
+          
+          file = await fileHandle.getFile();
+          loadedFileName = file.name;
+          content = await file.text();
+        } else {
+          // Fallback para navegadores que no soportan File System Access API
+          const input = document.createElement('input');
+          input.type = 'file';
+          input.accept = '.dcf';
+          
+          await new Promise((resolve) => {
+            input.onchange = (e) => {
+              file = e.target.files[0];
+              if (file) {
+                loadedFileName = file.name;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                  content = e.target.result;
+                  resolve();
+                };
+                reader.readAsText(file);
+              } else {
+                resolve();
+              }
+            };
+            input.click();
+          });
+        }
+
+        if (!file || !loadedFileName.endsWith('.dcf')) {
+          if (file) {
+            showMessage('Por favor seleccione un archivo .dcf válido', 'error');
+          }
+          return;
+        }
+
+        // Procesar el contenido del archivo
+        const loadedData = JSON.parse(content);
+        
+        // Validar formato del archivo
+        if (!loadedData.fileType || loadedData.fileType !== 'DCF') {
+          showMessage('Archivo no válido: no es un archivo DCF', 'error');
+          return;
+        }
+
+        if (!loadedData.sectionType || loadedData.sectionType !== 'dinamicas-completas') {
+          showMessage('Este archivo pertenece a otra sección del simulador', 'error');
+          return;
+        }
+
+        // Cargar configuración
+        setCurrentStructureConfig(loadedData.configuration || {
+          buckets: loadedData.data.currentBuckets,
+          records: loadedData.data.currentRecords,
+          expansionThreshold: 75,
+          reductionThreshold: 25,
+          keySize: 2,
+          initialBuckets: 2
+        });
+        
+        // Cargar datos
+        setMemoryMatrix(loadedData.data.memoryMatrix || []);
+        setCollisions(loadedData.data.collisions || {});
+        setInsertionHistory(loadedData.data.insertionHistory || []);
+        setCurrentBuckets(loadedData.data.currentBuckets || 2);
+        setCurrentRecords(loadedData.data.currentRecords || 2);
+        setIsStructureCreated(loadedData.data.isStructureCreated || false);
+
+        // Limpiar historial y estados
+        setHistory([]);
+        setHistoryIndex(-1);
+        setHasUnsavedChanges(false);
+        setFileName(loadedFileName);
+        
+        showMessage(`Archivo cargado exitosamente: ${loadedFileName}`, 'success');
+        
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          showMessage('Error al cargar el archivo: ' + (error.message || 'formato inválido'), 'error');
+          console.error('Error loading file:', error);
+        }
+      }
+    };
+
+    // Verificar cambios no guardados
+    if (hasUnsavedChanges) {
+      setPendingAction({ execute: executeLoad, description: 'cargar archivo' });
+      setShowUnsavedWarning(true);
       return;
     }
-    setCurrentStructureConfig(data.config);
-    setMemoryMatrix(data.matrix);
-    setCollisions(data.collisions || {});
-    setInsertionHistory(data.insertionHistory || []);
-    setCurrentBuckets(data.currentBuckets || data.config.buckets);
-    setCurrentRecords(data.currentRecords || data.config.records);
-    setIsStructureCreated(true);
-    setFileName(data.fileName || 'archivo.dcf');
-    setHasUnsavedChanges(false);
-    setHistory([]);
-    setHistoryIndex(-1);
-    showMessage('Estructura cargada exitosamente', 'success');
+
+    // Ejecutar directamente si no hay cambios
+    executeLoad();
   };
 
-  const handleLoad = () => {
-    fileInputRef.current?.click();
+  // Función mejorada para confirmar pérdida de progreso
+  const confirmUnsavedChanges = async (action) => {
+    const currentPendingAction = pendingAction;
+    
+    // Cerrar el modal
+    setShowUnsavedWarning(false);
+    setPendingAction(null);
+    
+    try {
+      if (action === 'cancel') {
+        // Solo cerrar el modal, no hacer nada más
+        return;
+        
+      } else if (action === 'continue' && currentPendingAction) {
+        // Continuar sin guardar - limpiar cambios y ejecutar acción
+        setHasUnsavedChanges(false);
+        
+        // Ejecutar la acción pendiente
+        if (currentPendingAction.execute) {
+          currentPendingAction.execute();
+        }
+        
+      } else if (action === 'save' && currentPendingAction) {
+        // Guardar primero, luego continuar
+        await handleSave();
+        
+        // Ejecutar la acción después de un breve delay
+        setTimeout(() => {
+          if (currentPendingAction.execute) {
+            currentPendingAction.execute();
+          }
+        }, 100);
+      }
+    } catch (error) {
+      console.error('Error en confirmUnsavedChanges:', error);
+      showMessage('Error al procesar la acción', 'error');
+    }
   };
+
+  // Sistema mejorado de navegación sin bloqueo
+  const checkForUnsavedChanges = React.useCallback((targetSection, callback) => {
+    if (hasUnsavedChanges && !showUnsavedWarning) {
+      setPendingAction({ 
+        execute: callback || (() => onNavigate && onNavigate(targetSection)), 
+        description: `navegar a ${targetSection}` 
+      });
+      setShowUnsavedWarning(true);
+    } else if (!hasUnsavedChanges) {
+      if (callback) {
+        callback();
+      } else if (onNavigate) {
+        onNavigate(targetSection);
+      }
+    }
+  }, [hasUnsavedChanges, onNavigate, showUnsavedWarning]);
+
+  // Interceptar intentos de navegación del componente padre
+  useEffect(() => {
+    window.dinamicasCompletasCheckUnsavedChanges = checkForUnsavedChanges;
+    
+    return () => {
+      delete window.dinamicasCompletasCheckUnsavedChanges;
+    };
+  }, [checkForUnsavedChanges]);
+
+  // Función para verificar cambios no guardados antes de salir
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = 'Hay cambios sin guardar que se perderán si sale de la página.';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   const handleVisualMouseDown = (e) => {
     if (e.button === 0) {
@@ -672,24 +912,6 @@ function DinamicasCompletasSearchSection() {
     setVisualZoom(1.0);
     setVisualPan({ x: 0, y: 0 });
   };
-
-  useEffect(() => {
-    const checkUnsavedChanges = (targetSection, callback) => {
-      if (hasUnsavedChanges) {
-        const confirmLeave = window.confirm('Hay cambios no guardados. ¿Desea salir sin guardar?');
-        if (confirmLeave) {
-          setHasUnsavedChanges(false);
-          callback();
-        }
-      } else {
-        callback();
-      }
-    };
-    window.dinamicasCompletasCheckUnsavedChanges = checkUnsavedChanges;
-    return () => {
-      delete window.dinamicasCompletasCheckUnsavedChanges;
-    };
-  }, [hasUnsavedChanges]);
 
   return (
     <div className="hash-container">
@@ -826,27 +1048,6 @@ function DinamicasCompletasSearchSection() {
             <span>Rehacer</span>
           </button>
         </div>
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) {
-              const reader = new FileReader();
-              reader.onload = (event) => {
-                try {
-                  const data = JSON.parse(event.target?.result);
-                  loadFromData(data);
-                } catch {
-                  setMessage({ type: 'error', text: 'Error al cargar el archivo' });
-                }
-              };
-              reader.readAsText(file);
-            }
-          }}
-          accept=".dcf"
-          style={{ display: 'none' }}
-        />
       </div>
 
       {message && message.text && (
@@ -1270,6 +1471,57 @@ function DinamicasCompletasSearchSection() {
           )}
         </div>
       </div>
+
+      {/* Modal de advertencia de cambios no guardados */}
+      {showUnsavedWarning && (
+        <div 
+          className="modal-overlay" 
+          onClick={(e) => {
+            if (e.target.className === 'modal-overlay') {
+              confirmUnsavedChanges('cancel');
+            }
+          }}
+        >
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>⚠️ Cambios sin guardar</h3>
+            </div>
+            <div className="modal-body">
+              <p>
+                Tienes cambios sin guardar que se perderán si continúas.
+                {pendingAction && (
+                  <span className="modal-action-description">
+                    <br />
+                    <strong>Acción pendiente:</strong> {pendingAction.description}
+                  </span>
+                )}
+              </p>
+              <p className="modal-question">¿Qué deseas hacer?</p>
+            </div>
+            <div className="modal-actions">
+              <button
+                className="button button-secondary"
+                onClick={() => confirmUnsavedChanges('cancel')}
+              >
+                Cancelar
+              </button>
+              <button
+                className="button button-success"
+                onClick={() => confirmUnsavedChanges('save')}
+              >
+                <Save size={16} />
+                <span>Guardar y continuar</span>
+              </button>
+              <button
+                className="button button-danger"
+                onClick={() => confirmUnsavedChanges('continue')}
+              >
+                Continuar sin guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

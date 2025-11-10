@@ -534,11 +534,28 @@
   line-height: 1.5;
 }
 
-.modal-buttons {
+.modal-body {
+  margin: 16px 0;
+}
+
+.modal-action-description {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.modal-question {
+  margin-top: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.modal-buttons,
+.modal-actions {
   display: flex;
   gap: 12px;
-  margin-top: 20px;
+  margin-top: 24px;
   justify-content: flex-end;
+  flex-wrap: nowrap;
 }
 
 .modal-btn {
@@ -576,6 +593,82 @@
 
 .modal-btn.continue:hover {
   background: #b91c1c;
+}
+
+/* Estilos mejorados para los botones del modal de advertencias */
+.modal-actions .button {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: normal;
+  text-align: center;
+  min-width: 0;
+  flex: 1;
+}
+
+.modal-actions .button-secondary {
+  background: #e5e7eb;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.modal-actions .button-secondary:hover {
+  background: #d1d5db;
+  color: #1f2937;
+}
+
+.modal-actions .button-success {
+  background: #10b981;
+  color: white;
+  border: 1px solid #059669;
+}
+
+.modal-actions .button-success:hover {
+  background: #059669;
+  color: white;
+}
+
+.modal-actions .button-danger {
+  background: #ef4444;
+  color: white;
+  border: 1px solid #dc2626;
+}
+
+.modal-actions .button-danger:hover {
+  background: #dc2626;
+  color: white;
+}
+
+/* Responsive para el modal en pantallas pequeñas */
+@media (max-width: 768px) {
+  .modal-content {
+    max-width: 90%;
+    padding: 20px;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .modal-actions .button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (min-width: 769px) {
+  .modal-content {
+    min-width: 450px;
+  }
 }
 
 @keyframes fadeIn {
