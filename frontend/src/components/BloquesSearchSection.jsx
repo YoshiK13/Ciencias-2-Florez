@@ -17,16 +17,21 @@ function BloquesSearchSection({ onNavigate }) {
   // Estados para la configuración
   const [structureSize, setStructureSize] = useState(20);
   const [keySize, setKeySize] = useState(4);
-  const [hashFunction, setHashFunction] = useState('mod');
+  const [hashFunction, setHashFunction] = useState('secuencial');
   const [collisionMethod, setCollisionMethod] = useState('secuencial');
   const [isStructureCreated, setIsStructureCreated] = useState(false);
+  
+  // Estados específicos para bloques
+  const [blocks, setBlocks] = useState([]); // Array de bloques, cada uno es un array de claves
   
   // Estados para la configuración actual de la estructura creada
   const [currentStructureConfig, setCurrentStructureConfig] = useState({
     hashFunction: 'mod',
     collisionMethod: 'secuencial',
     structureSize: 20,
-    keySize: 4
+    keySize: 4,
+    numBlocks: 0,
+    recordsPerBlock: 0
   });
   
   // Estados para las operaciones
@@ -57,9 +62,6 @@ function BloquesSearchSection({ onNavigate }) {
   // Sistema de historial para deshacer/rehacer (últimas 15 acciones)
   const [history, setHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
-  
-  // Estado temporal para la visualización de la estructura
-  const [structureData, setStructureData] = useState([]);
   
   // Estados para zoom y pan del contenedor de visualización
   const [visualZoom, setVisualZoom] = useState(1.0); // Zoom de 0.3 (30%) a 3.0 (300%)
@@ -137,6 +139,27 @@ function BloquesSearchSection({ onNavigate }) {
   // Función para marcar cambios no guardados
   const markAsChanged = () => {
     setHasUnsavedChanges(true);
+  };
+
+  // ===== FUNCIONES ESPECÍFICAS PARA BLOQUES =====
+  
+  // Calcular cantidad de bloques: ceil(sqrt(structureSize))
+  const calculateNumBlocks = (size) => {
+    return Math.ceil(Math.sqrt(size));
+  };
+
+  // Calcular registros por bloque: ceil(structureSize / numBlocks)
+  const calculateRecordsPerBlock = (size, blocks) => {
+    return Math.ceil(size / blocks);
+  };
+
+  // Crear estructura de bloques vacía
+  const createEmptyBlocks = (numBlocks, recordsPerBlock) => {
+    const newBlocks = [];
+    for (let i = 0; i < numBlocks; i++) {
+      newBlocks.push(Array(recordsPerBlock).fill(null));
+    }
+    return newBlocks;
   };
 
   // Funciones para pan/arrastre del contenedor de visualización
@@ -277,38 +300,6 @@ function BloquesSearchSection({ onNavigate }) {
     }
   };
 
-  // Función para aplicar función hash (usa la configuración actual de la estructura)
-  const applyHashFunction = (key) => {
-    const activeHashFunction = isStructureCreated ? currentStructureConfig.hashFunction : hashFunction;
-    const activeStructureSize = isStructureCreated ? currentStructureConfig.structureSize : structureSize;
-    return hashFunctions[activeHashFunction](key, activeStructureSize);
-  };
-
-  // Métodos de resolución de colisiones (usa la configuración actual de la estructura)
-  const resolveCollision = (originalIndex, key, attempt = 0) => {
-    const activeCollisionMethod = isStructureCreated ? currentStructureConfig.collisionMethod : collisionMethod;
-    const activeStructureSize = isStructureCreated ? currentStructureConfig.structureSize : structureSize;
-    
-    switch (activeCollisionMethod) {
-      case 'secuencial':
-        return (originalIndex + attempt) % activeStructureSize;
-      case 'cuadratica':
-        return (originalIndex + Math.pow(attempt, 2)) % activeStructureSize;
-      case 'hashmod': {
-        const secondHash = 7 - (parseInt(key) % 7);
-        return (originalIndex + attempt * secondHash) % activeStructureSize;
-      }
-      case 'arreglos':
-        // Para arreglos, mantenemos el índice original y manejamos listas
-        return originalIndex;
-      case 'encadenamiento':
-        // Similar a arreglos, mantenemos el índice original
-        return originalIndex;
-      default:
-        return originalIndex;
-    }
-  };
-
   // Función para crear el objeto de datos para guardar
   const createSaveData = () => {
     return {
@@ -320,16 +311,19 @@ function BloquesSearchSection({ onNavigate }) {
       configuration: {
         structureSize: structureSize,
         keySize: keySize,
-        hashFunction: hashFunction,
-        collisionMethod: collisionMethod
+        hashFunction: currentStructureConfig.hashFunction,
+        collisionMethod: currentStructureConfig.collisionMethod,
+        numBlocks: currentStructureConfig.numBlocks,
+        recordsPerBlock: currentStructureConfig.recordsPerBlock
       },
       data: {
         memoryArray: [...memoryArray],
+        blocks: blocks.map(block => [...block]), // Guardar estructura de bloques
         isStructureCreated: isStructureCreated
       },
       metadata: {
         elementsCount: memoryArray.filter(item => item !== null).length,
-        description: `Estructura de bloques con función ${hashFunction} y resolución ${collisionMethod}`
+        description: `Estructura de ${currentStructureConfig.numBlocks} bloques con ${currentStructureConfig.recordsPerBlock} registros por bloque`
       }
     };
   };
@@ -473,33 +467,26 @@ function BloquesSearchSection({ onNavigate }) {
         // Cargar configuración
         setStructureSize(loadedData.configuration.structureSize);
         setKeySize(loadedData.configuration.keySize);
-        setHashFunction(loadedData.configuration.hashFunction);
-        setCollisionMethod(loadedData.configuration.collisionMethod);
+        setHashFunction(loadedData.configuration.hashFunction || 'secuencial');
+        setCollisionMethod(loadedData.configuration.collisionMethod || 'secuencial');
         
-        // Si hay estructura creada, guardar también la configuración actual
+        // Si hay estructura creada, guardar también la configuración y bloques
         if (loadedData.data.isStructureCreated) {
           setCurrentStructureConfig({
-            hashFunction: loadedData.configuration.hashFunction,
-            collisionMethod: loadedData.configuration.collisionMethod,
             structureSize: loadedData.configuration.structureSize,
-            keySize: loadedData.configuration.keySize
+            keySize: loadedData.configuration.keySize,
+            hashFunction: loadedData.configuration.hashFunction || 'secuencial',
+            collisionMethod: loadedData.configuration.collisionMethod || 'secuencial',
+            numBlocks: loadedData.configuration.numBlocks,
+            recordsPerBlock: loadedData.configuration.recordsPerBlock
           });
         }
         
         // Cargar datos
         setMemoryArray(loadedData.data.memoryArray || []);
+        setBlocks(loadedData.data.blocks || []); // Cargar estructura de bloques
         setIsStructureCreated(loadedData.data.isStructureCreated || false);
         
-        // Actualizar visualización
-        if (loadedData.data.isStructureCreated) {
-          const newStructure = Array(loadedData.configuration.structureSize).fill(null).map((_, index) => ({
-            position: index + 1, // Numeración desde 1
-            value: loadedData.data.memoryArray[index] || null,
-            isHighlighted: false
-          }));
-          setStructureData(newStructure);
-        }
-
         // Limpiar historial y estados
         setHistory([]);
         setHistoryIndex(-1);
@@ -593,19 +580,9 @@ function BloquesSearchSection({ onNavigate }) {
   };
 
   // Función para actualizar la visualización de la estructura
-  const updateStructureVisualization = (array) => {
-    const activeCollisionMethod = isStructureCreated ? currentStructureConfig.collisionMethod : collisionMethod;
-    const newStructure = Array(structureSize).fill(null).map((_, index) => ({
-      position: index + 1, // Numeración desde 1
-      // Para encadenamiento, el valor es un array de claves (lista)
-      // Para arreglos anidados, el valor es simple (las colisiones van en arreglos separados)
-      // Para otros métodos, el valor es simple
-      value: activeCollisionMethod === 'encadenamiento' 
-        ? (Array.isArray(array[index]) ? array[index] : [])
-        : (array[index] || null),
-      isHighlighted: false
-    }));
-    setStructureData(newStructure);
+  const updateStructureVisualization = () => {
+    // Esta función ya no necesita hacer nada porque renderizamos directamente desde blocks
+    // Se mantiene para compatibilidad con el código existente
   };
 
   const handleCreateStructure = () => {
@@ -616,31 +593,37 @@ function BloquesSearchSection({ onNavigate }) {
     }
 
     if (structureSize >= 10 && keySize >= 2) {
+      // ===== CALCULAR BLOQUES =====
+      // Cantidad de bloques: ceil(sqrt(structureSize))
+      const calculatedNumBlocks = calculateNumBlocks(structureSize);
+      
+      // Registros por bloque: ceil(structureSize / numBlocks)
+      const calculatedRecordsPerBlock = calculateRecordsPerBlock(structureSize, calculatedNumBlocks);
+      
+      // Crear estructura de bloques vacía
+      const emptyBlocks = createEmptyBlocks(calculatedNumBlocks, calculatedRecordsPerBlock);
+      
+      // Actualizar estados de bloques
+      setBlocks(emptyBlocks);
+      
       // Guardar la configuración actual para la estructura
       setCurrentStructureConfig({
         hashFunction: hashFunction,
         collisionMethod: collisionMethod,
         structureSize: structureSize,
-        keySize: keySize
+        keySize: keySize,
+        numBlocks: calculatedNumBlocks,
+        recordsPerBlock: calculatedRecordsPerBlock
       });
       
       setIsStructureCreated(true);
       
-      // Para encadenamiento, cada posición es un array
-      // Para arreglos asociados, la memoria principal es simple y se crean arreglos anidados según se necesiten
-      // Para otros métodos, cada posición es un valor simple (null o string)
-      const emptyArray = collisionMethod === 'encadenamiento'
-        ? Array(structureSize).fill(null).map(() => [])
-        : Array(structureSize).fill(null);
-      
+      // Crear array plano para visualización (compatibilidad con visualización actual)
+      const emptyArray = Array(structureSize).fill(null);
       setMemoryArray(emptyArray);
       
-      // Inicializar arreglos anidados vacíos para método 'arreglos'
-      if (collisionMethod === 'arreglos') {
-        setNestedArrays([]);
-      } else {
-        setNestedArrays([]);
-      }
+      // Inicializar arreglos anidados vacíos
+      setNestedArrays([]);
       
       updateStructureVisualization(emptyArray);
       setHistory([]);
@@ -648,7 +631,11 @@ function BloquesSearchSection({ onNavigate }) {
       setMessage({ text: '', type: '' });
       setHasUnsavedChanges(true);
       setCurrentFileName(null);
-      showMessage(`Estructura hash creada con función ${hashFunction} y resolución de colisiones ${collisionMethod}`, 'success');
+      
+      showMessage(
+        `Estructura de bloques creada: ${calculatedNumBlocks} bloques con ${calculatedRecordsPerBlock} registros cada uno (Total: ${structureSize} posiciones)`,
+        'success'
+      );
     }
   };
 
@@ -656,324 +643,151 @@ function BloquesSearchSection({ onNavigate }) {
     if (!insertKey.trim() || !isStructureCreated) return;
 
     const key = insertKey.trim();
-    
-    // Formatear clave con ceros a la izquierda si es necesario
     const formattedKey = formatKey(key);
     
-    // Validar clave (numérica y tamaño correcto)
+    // Validar clave
     const validation = validateKey(formattedKey);
     if (!validation.isValid) {
       showMessage(validation.message, 'error');
       return;
     }
 
-    // Verificar si la clave ya existe
-    const activeCollisionMethod = isStructureCreated ? currentStructureConfig.collisionMethod : collisionMethod;
-    const activeStructureSize = isStructureCreated ? currentStructureConfig.structureSize : structureSize;
-    
-    // Para encadenamiento, verificar en el array de listas
-    if (activeCollisionMethod === 'encadenamiento') {
-      const keyExists = memoryArray.some(chain => Array.isArray(chain) && chain.includes(formattedKey));
-      if (keyExists) {
-        showMessage('No se aceptan claves repetidas', 'error');
-        return;
-      }
-      
-      // Verificar límite total de elementos
-      const totalElements = memoryArray.reduce((sum, chain) => 
-        sum + (Array.isArray(chain) ? chain.length : 0), 0
-      );
-      if (totalElements >= activeStructureSize) {
-        showMessage('La estructura está llena', 'error');
-        return;
-      }
-    } else if (activeCollisionMethod === 'arreglos') {
-      // Para arreglos anidados, verificar en memoria principal y en todos los arreglos anidados
-      if (memoryArray.includes(formattedKey)) {
-        showMessage('No se aceptan claves repetidas', 'error');
-        return;
-      }
-      
-      const keyExistsInNested = nestedArrays.some(nestedArray => 
-        nestedArray.array.includes(formattedKey)
-      );
-      if (keyExistsInNested) {
-        showMessage('No se aceptan claves repetidas', 'error');
-        return;
-      }
-      
-      // Verificar límite total: memoria principal + todos los arreglos anidados
-      const mainElements = memoryArray.filter(item => item !== null).length;
-      const nestedElements = nestedArrays.reduce((sum, nested) => 
-        sum + nested.array.filter(item => item !== null).length, 0
-      );
-      const totalElements = mainElements + nestedElements;
-      
-      if (totalElements >= activeStructureSize) {
-        showMessage('La estructura está llena', 'error');
-        return;
-      }
-    } else {
-      // Para otros métodos, verificar normalmente
-      if (memoryArray.includes(formattedKey)) {
-        showMessage('No se aceptan claves repetidas', 'error');
-        return;
+    // Verificar si la clave ya existe en los bloques
+    let keyExists = false;
+    for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
+      if (blocks[blockIndex].includes(formattedKey)) {
+        keyExists = true;
+        break;
       }
     }
-
-    // Calcular posición hash
-    const hashIndex = applyHashFunction(formattedKey);
-    let finalIndex = hashIndex;
-    let attempts = 0;
-    let hashApplications = 1; // Contar cuántas veces se aplicó la función hash
     
-    // Contar cuántas veces se reaplicó la función hash internamente
-    const countHashApplications = (key, size) => {
-      const activeHashFunction = isStructureCreated ? currentStructureConfig.hashFunction : hashFunction;
-      let count = 1;
-      
-      if (activeHashFunction === 'cuadrado') {
-        const squared = Math.pow(parseInt(key), 2);
-        const str = squared.toString();
-        const digitsNeeded = Math.floor(Math.log10(size)) + 1;
-        const startIndex = Math.max(0, Math.floor((str.length - digitsNeeded) / 2));
-        const extracted = str.substring(startIndex, startIndex + digitsNeeded);
-        const result = parseInt(extracted || '0');
-        if (result >= size) {
-          return 1 + countHashApplications(result.toString(), size);
-        }
-      } else if (activeHashFunction === 'truncamiento') {
-        const positions = [0, 2];
-        let extracted = '';
-        positions.forEach(pos => {
-          if (pos < key.length) {
-            extracted += key[pos];
-          }
-        });
-        if (extracted === '') extracted = '0';
-        const result = parseInt(extracted);
-        if (result >= size) {
-          return 1 + countHashApplications(result.toString(), size);
-        }
-      } else if (activeHashFunction === 'plegamiento') {
-        const partSize = Math.floor(key.length / 2);
-        let sum = 0;
-        for (let i = 0; i < key.length; i += partSize) {
-          const part = key.substring(i, i + partSize);
-          if (part.length > 0) {
-            sum += parseInt(part);
-          }
-        }
-        if (sum >= size) {
-          return 1 + countHashApplications(sum.toString(), size);
-        }
-      }
-      
-      return count;
-    };
-    
-    hashApplications = countHashApplications(formattedKey, activeStructureSize);
-    
-    // Para encadenamiento, agregar a la lista en la posición hash
-    if (activeCollisionMethod === 'encadenamiento') {
-      const newArray = [...memoryArray];
-      const previousState = [...memoryArray];
-      
-      // Agregar a la lista en la posición hash
-      newArray[hashIndex] = [...newArray[hashIndex], formattedKey];
-      setMemoryArray(newArray);
-      updateStructureVisualization(newArray);
-      
-      // Agregar al historial
-      addToHistory({
-        type: 'insert',
-        key: formattedKey,
-        position: hashIndex,
-        hashIndex: hashIndex,
-        attempts: 0,
-        previousState: previousState,
-        newState: newArray
-      });
-
-      // Mensaje principal
-      const chainLength = newArray[hashIndex].length;
-      const hashMsg = hashApplications > 1 
-        ? `Clave insertada en posición ${hashIndex + 1} (función hash aplicada ${hashApplications} veces, elemento ${chainLength} en la cadena)`
-        : `Clave insertada en posición ${hashIndex + 1} (elemento ${chainLength} en la cadena)`;
-      
-      showMessage(hashMsg, 'success');
-      
-      setInsertKey('');
-      markAsChanged();
+    if (keyExists) {
+      showMessage('No se aceptan claves repetidas', 'error');
       return;
     }
-    
-    // Para arreglos anidados
-    if (activeCollisionMethod === 'arreglos') {
-      const previousMainState = [...memoryArray];
-      const previousNestedState = JSON.parse(JSON.stringify(nestedArrays));
-      
-      // Si la posición en memoria principal está libre, insertar ahí
-      if (memoryArray[hashIndex] === null) {
-        const newArray = [...memoryArray];
-        newArray[hashIndex] = formattedKey;
-        setMemoryArray(newArray);
-        updateStructureVisualization(newArray);
-        
-        addToHistory({
-          type: 'insert',
-          key: formattedKey,
-          position: hashIndex,
-          hashIndex: hashIndex,
-          attempts: 0,
-          arrayType: 'main',
-          previousState: previousMainState,
-          newState: newArray,
-          previousNestedState: previousNestedState,
-          newNestedState: nestedArrays
-        });
 
-        const hashMsg = hashApplications > 1 
-          ? `Clave insertada en Memoria posición ${hashIndex + 1} (función hash aplicada ${hashApplications} veces)`
-          : `Clave insertada en Memoria posición ${hashIndex + 1}`;
-        
-        showMessage(hashMsg, 'success');
-      } else {
-        // Hay colisión, buscar o crear arreglo anidado
-        let targetNestedArrayIndex = -1;
-        
-        // Buscar un arreglo anidado que tenga la posición libre
-        for (let i = 0; i < nestedArrays.length; i++) {
-          if (nestedArrays[i].array[hashIndex] === null) {
-            targetNestedArrayIndex = i;
-            break;
-          }
-        }
-        
-        let newNestedArrays;
-        let arrayNumber;
-        
-        if (targetNestedArrayIndex === -1) {
-          // Crear nuevo arreglo anidado
-          const newNestedArray = {
-            id: nestedArrays.length + 1,
-            array: Array(activeStructureSize).fill(null)
-          };
-          newNestedArray.array[hashIndex] = formattedKey;
-          newNestedArrays = [...nestedArrays, newNestedArray];
-          arrayNumber = newNestedArray.id;
-        } else {
-          // Usar arreglo existente
-          newNestedArrays = [...nestedArrays];
-          newNestedArrays[targetNestedArrayIndex] = {
-            ...newNestedArrays[targetNestedArrayIndex],
-            array: [...newNestedArrays[targetNestedArrayIndex].array]
-          };
-          newNestedArrays[targetNestedArrayIndex].array[hashIndex] = formattedKey;
-          arrayNumber = newNestedArrays[targetNestedArrayIndex].id;
-        }
-        
-        setNestedArrays(newNestedArrays);
-        
-        addToHistory({
-          type: 'insert',
-          key: formattedKey,
-          position: hashIndex,
-          hashIndex: hashIndex,
-          attempts: 0,
-          arrayType: 'nested',
-          arrayNumber: arrayNumber,
-          previousState: previousMainState,
-          newState: memoryArray,
-          previousNestedState: previousNestedState,
-          newNestedState: newNestedArrays
-        });
-
-        const hashMsg = hashApplications > 1 
-          ? `Clave insertada en Arreglo ${arrayNumber} posición ${hashIndex + 1} (función hash aplicada ${hashApplications} veces)`
-          : `Clave insertada en Arreglo ${arrayNumber} posición ${hashIndex + 1}`;
-        
-        showMessage(hashMsg, 'success');
-      }
-      
-      setInsertKey('');
-      markAsChanged();
-      return;
+    // Contar total de elementos insertados
+    let totalElements = 0;
+    for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
+      totalElements += blocks[blockIndex].filter(k => k !== null).length;
     }
     
-    // Para otros métodos de colisión (secuencial, cuadrática, hash doble)
-    // Resolver colisiones
-    while (memoryArray[finalIndex] !== null && attempts < structureSize) {
-      attempts++;
-      finalIndex = resolveCollision(hashIndex, formattedKey, attempts);
-      
-      if (finalIndex < 0 || finalIndex >= structureSize) {
-        finalIndex = finalIndex % structureSize;
-      }
-    }
-
-    if (attempts >= structureSize) {
+    if (totalElements >= currentStructureConfig.structureSize) {
       showMessage('La estructura está llena', 'error');
       return;
     }
 
-    // Guardar estado anterior para el historial
-    const previousState = [...memoryArray];
-    
-    // Insertar elemento
-    const newArray = [...memoryArray];
-    newArray[finalIndex] = formattedKey;
-    setMemoryArray(newArray);
-    updateStructureVisualization(newArray);
-    
+    let newBlocks;
+    let newMemoryArray;
+    let insertedBlockIndex = -1;
+    let insertedPositionInBlock = -1;
+    let globalPosition = -1;
+
+    // Si la función es secuencial, ordenar todas las claves
+    if (currentStructureConfig.hashFunction === 'secuencial') {
+      // Recolectar todas las claves existentes
+      const allKeys = [];
+      for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
+        for (let pos = 0; pos < blocks[blockIndex].length; pos++) {
+          if (blocks[blockIndex][pos] !== null) {
+            allKeys.push(blocks[blockIndex][pos]);
+          }
+        }
+      }
+      
+      // Agregar la nueva clave
+      allKeys.push(formattedKey);
+      
+      // Ordenar todas las claves de menor a mayor
+      allKeys.sort((a, b) => a.localeCompare(b));
+      
+      // Crear nueva estructura de bloques ordenada
+      newBlocks = blocks.map(block => block.map(() => null));
+      let keyIndex = 0;
+      
+      for (let blockIndex = 0; blockIndex < newBlocks.length; blockIndex++) {
+        for (let pos = 0; pos < newBlocks[blockIndex].length; pos++) {
+          if (keyIndex < allKeys.length) {
+            newBlocks[blockIndex][pos] = allKeys[keyIndex];
+            if (allKeys[keyIndex] === formattedKey) {
+              insertedBlockIndex = blockIndex;
+              insertedPositionInBlock = pos;
+              globalPosition = (blockIndex * currentStructureConfig.recordsPerBlock) + pos;
+            }
+            keyIndex++;
+          }
+        }
+      }
+      
+      // Actualizar array plano para visualización
+      newMemoryArray = Array(currentStructureConfig.structureSize).fill(null);
+      keyIndex = 0;
+      for (let i = 0; i < newMemoryArray.length && keyIndex < allKeys.length; i++) {
+        newMemoryArray[i] = allKeys[keyIndex];
+        keyIndex++;
+      }
+    } else {
+      // Búsqueda secuencial normal (sin ordenar)
+      newBlocks = blocks.map(block => [...block]);
+      
+      for (let blockIndex = 0; blockIndex < newBlocks.length; blockIndex++) {
+        for (let pos = 0; pos < newBlocks[blockIndex].length; pos++) {
+          if (newBlocks[blockIndex][pos] === null) {
+            newBlocks[blockIndex][pos] = formattedKey;
+            insertedBlockIndex = blockIndex;
+            insertedPositionInBlock = pos;
+            break;
+          }
+        }
+        if (insertedBlockIndex !== -1) break;
+      }
+
+      if (insertedBlockIndex === -1) {
+        showMessage('Error: No se pudo insertar la clave', 'error');
+        return;
+      }
+
+      // Actualizar array plano para visualización (mantener compatibilidad)
+      newMemoryArray = [...memoryArray];
+      globalPosition = (insertedBlockIndex * currentStructureConfig.recordsPerBlock) + insertedPositionInBlock;
+      if (globalPosition < newMemoryArray.length) {
+        newMemoryArray[globalPosition] = formattedKey;
+      }
+    }
+
+    // Actualizar bloques y memoria
+    setBlocks(newBlocks);
+    setMemoryArray(newMemoryArray);
+    updateStructureVisualization(newMemoryArray);
+
     // Agregar al historial
     addToHistory({
       type: 'insert',
       key: formattedKey,
-      position: finalIndex,
-      hashIndex: hashIndex,
-      attempts: attempts,
-      previousState: previousState,
-      newState: newArray
+      blockIndex: insertedBlockIndex,
+      positionInBlock: insertedPositionInBlock,
+      globalPosition: globalPosition,
+      previousBlocks: blocks,
+      newBlocks: newBlocks,
+      previousMemory: memoryArray,
+      newMemory: newMemoryArray
     });
 
-    // Mensaje principal: dónde se insertó y cuántas veces se aplicó la función hash
-    const hashMsg = hashApplications > 1 
-      ? `Clave insertada en posición ${finalIndex + 1} (función hash aplicada ${hashApplications} veces)`
-      : `Clave insertada en posición ${finalIndex + 1}`;
-    
-    showMessage(hashMsg, 'success');
-    
-    // Mensaje adicional si hubo colisiones
-    if (attempts > 0) {
-      const activeCollisionMethod = isStructureCreated ? currentStructureConfig.collisionMethod : collisionMethod;
-      const collisionMethodNames = {
-        'secuencial': 'Secuencial',
-        'cuadratica': 'Cuadrática',
-        'hashmod': 'Hash Doble',
-        'arreglos': 'Arreglos Asociados',
-        'encadenamiento': 'Encadenamiento'
-      };
-      const methodName = collisionMethodNames[activeCollisionMethod] || activeCollisionMethod;
-      
-      setTimeout(() => {
-        showMessage(`Colisión resuelta: ${attempts} intento(s) usando método ${methodName}`, 'info');
-      }, 1500);
-    }
+    showMessage(
+      `Clave "${formattedKey}" insertada en Bloque ${insertedBlockIndex + 1}, Posición ${insertedPositionInBlock + 1} (Posición global: ${globalPosition + 1})`,
+      'success'
+    );
     
     setInsertKey('');
     markAsChanged();
   };
-
   const handleSearch = async () => {
     if (!searchKey.trim() || !isStructureCreated || isSimulating) return;
 
     const key = searchKey.trim();
-    
-    // Formatear clave con ceros a la izquierda si es necesario
     const formattedKey = formatKey(key);
     
-    // Validar clave (numérica y tamaño correcto)
+    // Validar clave
     const validation = validateKey(formattedKey);
     if (!validation.isValid) {
       showMessage(validation.message, 'error');
@@ -981,166 +795,60 @@ function BloquesSearchSection({ onNavigate }) {
     }
 
     setIsSimulating(true);
-    
-    // Limpiar highlights anteriores
-    setSearchHighlights({
-      mainMemory: [],
-      nestedArrays: {},
-      chainElements: {}
-    });
-    
-    let found = false;
-    let position = -1;
-    let steps = 0;
-    let foundLocation = '';
-    const activeCollisionMethod = isStructureCreated ? currentStructureConfig.collisionMethod : collisionMethod;
+    setSearchHighlights({ mainMemory: [], nestedArrays: {}, chainElements: {} });
 
-    // Calcular velocidad de animación basada en simulationSpeed
-    const delays = [2000, 1500, 1000, 600, 300]; // Muy lento a muy rápido
+    const delays = [2000, 1500, 1000, 600, 300];
     const delay = delays[simulationSpeed - 1];
 
-    // Calcular posición hash inicial
-    const hashIndex = applyHashFunction(formattedKey);
-    let currentIndex = hashIndex;
-    
-    // Búsqueda visual según el método de colisión
-    if (activeCollisionMethod === 'encadenamiento') {
-      // Encadenamiento: buscar en la lista enlazada con visualización
-      steps = 1;
-      
-      // Iluminar posición inicial
-      setSearchHighlights({
-        mainMemory: [hashIndex],
-        nestedArrays: {},
-        chainElements: {}
-      });
-      await new Promise(resolve => setTimeout(resolve, delay));
-      
-      const chain = memoryArray[hashIndex];
-      if (Array.isArray(chain) && chain.length > 0) {
-        for (let i = 0; i < chain.length; i++) {
-          steps++;
-          
-          // Iluminar elemento actual en la cadena
-          setSearchHighlights({
-            mainMemory: [hashIndex],
-            nestedArrays: {},
-            chainElements: { [hashIndex]: [i] }
-          });
-          await new Promise(resolve => setTimeout(resolve, delay));
-          
-          if (chain[i] === formattedKey) {
-            found = true;
-            position = hashIndex;
-            foundLocation = `en cadena de posición ${hashIndex + 1}, elemento ${i + 1}/${chain.length}`;
-            break;
-          }
-        }
-      }
-    } else if (activeCollisionMethod === 'arreglos') {
-      // Arreglos: buscar con visualización en memoria principal y arreglos anidados
-      steps = 1;
-      
-      // Iluminar posición en memoria principal
-      setSearchHighlights({
-        mainMemory: [hashIndex],
-        nestedArrays: {},
-        chainElements: {}
-      });
-      await new Promise(resolve => setTimeout(resolve, delay));
-      
-      if (memoryArray[hashIndex] === formattedKey) {
-        // Encontrada en memoria principal
-        found = true;
-        position = hashIndex;
-        foundLocation = `en Memoria Principal posición ${hashIndex + 1}`;
-      } else if (memoryArray[hashIndex] === null) {
-        // Posición vacía, la clave no existe
-        found = false;
-      } else {
-        // Hay colisión, buscar secuencialmente en todos los arreglos anidados
-        for (let arrayIdx = 0; arrayIdx < nestedArrays.length; arrayIdx++) {
-          const nestedArray = nestedArrays[arrayIdx];
-          
-          if (nestedArray && nestedArray.array && nestedArray.array[hashIndex] !== undefined) {
-            steps++;
-            
-            // Iluminar posición en arreglo anidado
-            setSearchHighlights({
-              mainMemory: [hashIndex],
-              nestedArrays: { [nestedArray.id]: [hashIndex] },
-              chainElements: {}
-            });
-            await new Promise(resolve => setTimeout(resolve, delay));
-            
-            const valueInNestedArray = nestedArray.array[hashIndex];
-            
-            if (valueInNestedArray === formattedKey) {
-              found = true;
-              position = hashIndex;
-              foundLocation = `en Arreglo ${nestedArray.id} posición ${hashIndex + 1}`;
-              break;
-            } else if (valueInNestedArray === null) {
-              break; // Si encontramos un espacio vacío, la clave no existe
-            }
-          }
-        }
-      }
-    } else {
-      // Direccionamiento abierto con visualización paso a paso
-      const visitedPositions = [];
-      
-      do {
+    let found = false;
+    let foundBlockIndex = -1;
+    let foundPositionInBlock = -1;
+    let foundGlobalPosition = -1;
+    let steps = 0;
+
+    // Buscar en cada bloque secuencialmente
+    for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
+      for (let pos = 0; pos < blocks[blockIndex].length; pos++) {
         steps++;
-        visitedPositions.push(currentIndex);
+        const globalPos = (blockIndex * currentStructureConfig.recordsPerBlock) + pos;
         
         // Iluminar posición actual
-        setSearchHighlights({
-          mainMemory: visitedPositions,
-          nestedArrays: {},
-          chainElements: {}
-        });
+        if (globalPos < memoryArray.length) {
+          setSearchHighlights({
+            mainMemory: [globalPos],
+            nestedArrays: {},
+            chainElements: {}
+          });
+        }
+        
         await new Promise(resolve => setTimeout(resolve, delay));
 
-        if (memoryArray[currentIndex] === formattedKey) {
+        if (blocks[blockIndex][pos] === formattedKey) {
           found = true;
-          position = currentIndex;
-          if (currentIndex === hashIndex) {
-            foundLocation = `en posición hash ${position + 1} (sin colisión)`;
-          } else {
-            foundLocation = `en posición ${position + 1} (tras ${steps - 1} colisión(es) desde posición hash ${hashIndex + 1})`;
-          }
-          break;
-        } else if (memoryArray[currentIndex] === null) {
-          // Posición vacía, la clave no existe
+          foundBlockIndex = blockIndex;
+          foundPositionInBlock = pos;
+          foundGlobalPosition = globalPos;
           break;
         }
-
-        // Aplicar resolución de colisiones para siguiente posición
-        currentIndex = resolveCollision(hashIndex, formattedKey, steps);
-        if (currentIndex < 0 || currentIndex >= structureSize) {
-          currentIndex = currentIndex % structureSize;
-        }
-
-      } while (steps < structureSize && currentIndex !== hashIndex);
+      }
+      if (found) break;
     }
 
-    // Mostrar resultado final
-    if (found) {
-      showMessage(`Clave "${formattedKey}" encontrada ${foundLocation} después de ${steps} comparaciones`, 'success');
-    } else {
-      showMessage(`Clave "${formattedKey}" no se encuentra en la estructura después de ${steps} comparaciones`, 'error');
-    }
-
-    // Mantener highlights por un momento antes de limpiar
-    await new Promise(resolve => setTimeout(resolve, delay * 2));
-    
     // Limpiar highlights
-    setSearchHighlights({
-      mainMemory: [],
-      nestedArrays: {},
-      chainElements: {}
-    });
+    setSearchHighlights({ mainMemory: [], nestedArrays: {}, chainElements: {} });
+
+    if (found) {
+      showMessage(
+        `Clave "${formattedKey}" encontrada en Bloque ${foundBlockIndex + 1}, Posición ${foundPositionInBlock + 1} ` +
+        `(Posición global: ${foundGlobalPosition + 1}) después de ${steps} pasos`,
+        'success'
+      );
+    } else {
+      showMessage(
+        `Clave "${formattedKey}" no encontrada después de buscar en ${steps} posiciones`,
+        'error'
+      );
+    }
 
     setIsSimulating(false);
   };
@@ -1149,30 +857,90 @@ function BloquesSearchSection({ onNavigate }) {
     if (!deleteKey.trim() || !isStructureCreated) return;
 
     const key = deleteKey.trim();
-    
-    // Formatear clave con ceros a la izquierda si es necesario
     const formattedKey = formatKey(key);
     
-    // Validar clave (numérica y tamaño correcto)
+    // Validar clave
     const validation = validateKey(formattedKey);
     if (!validation.isValid) {
       showMessage(validation.message, 'error');
       return;
     }
 
-    // Buscar la clave en la estructura
-    const keyIndex = memoryArray.indexOf(formattedKey);
-    if (keyIndex === -1) {
+    // Buscar la clave en los bloques
+    let found = false;
+    let foundBlockIndex = -1;
+    let foundPositionInBlock = -1;
+    let foundGlobalPosition = -1;
+
+    for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
+      const posInBlock = blocks[blockIndex].indexOf(formattedKey);
+      if (posInBlock !== -1) {
+        found = true;
+        foundBlockIndex = blockIndex;
+        foundPositionInBlock = posInBlock;
+        foundGlobalPosition = (blockIndex * currentStructureConfig.recordsPerBlock) + posInBlock;
+        break;
+      }
+    }
+
+    if (!found) {
       showMessage(`La clave "${formattedKey}" no se encuentra en la estructura`, 'error');
       return;
     }
 
-    // Guardar estado anterior para el historial
-    const previousState = [...memoryArray];
+    // Guardar estado anterior
+    const previousBlocks = blocks.map(block => [...block]);
+    const previousMemory = [...memoryArray];
     
-    // Eliminar clave
-    const newArray = [...memoryArray];
-    newArray[keyIndex] = null;
+    let newBlocks;
+    let newArray;
+    
+    // Si la función es secuencial, reorganizar las claves
+    if (currentStructureConfig.hashFunction === 'secuencial') {
+      // Recolectar todas las claves existentes excepto la eliminada
+      const allKeys = [];
+      for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
+        for (let pos = 0; pos < blocks[blockIndex].length; pos++) {
+          if (blocks[blockIndex][pos] !== null && blocks[blockIndex][pos] !== formattedKey) {
+            allKeys.push(blocks[blockIndex][pos]);
+          }
+        }
+      }
+      
+      // Las claves ya deben estar ordenadas, pero aseguramos el orden
+      allKeys.sort((a, b) => a.localeCompare(b));
+      
+      // Crear nueva estructura de bloques ordenada
+      newBlocks = blocks.map(block => block.map(() => null));
+      let keyIndex = 0;
+      
+      for (let blockIndex = 0; blockIndex < newBlocks.length; blockIndex++) {
+        for (let pos = 0; pos < newBlocks[blockIndex].length; pos++) {
+          if (keyIndex < allKeys.length) {
+            newBlocks[blockIndex][pos] = allKeys[keyIndex];
+            keyIndex++;
+          }
+        }
+      }
+      
+      // Actualizar array plano para visualización
+      newArray = Array(currentStructureConfig.structureSize).fill(null);
+      keyIndex = 0;
+      for (let i = 0; i < newArray.length && keyIndex < allKeys.length; i++) {
+        newArray[i] = allKeys[keyIndex];
+        keyIndex++;
+      }
+    } else {
+      // Eliminación normal (sin reordenar)
+      newBlocks = blocks.map(block => [...block]);
+      newBlocks[foundBlockIndex][foundPositionInBlock] = null;
+      
+      // Actualizar memoryArray para visualización
+      newArray = [...memoryArray];
+      newArray[foundGlobalPosition] = null;
+    }
+    
+    setBlocks(newBlocks);
     setMemoryArray(newArray);
     updateStructureVisualization(newArray);
     
@@ -1180,12 +948,18 @@ function BloquesSearchSection({ onNavigate }) {
     addToHistory({
       type: 'delete',
       key: formattedKey,
-      position: keyIndex,
-      previousState: previousState,
-      newState: newArray
+      position: foundGlobalPosition,
+      previousState: previousMemory,
+      newState: newArray,
+      previousBlocks: previousBlocks,
+      newBlocks: newBlocks
     });
 
-    showMessage(`Clave "${formattedKey}" eliminada de la posición ${keyIndex + 1}`, 'success');
+    showMessage(
+      `Clave "${formattedKey}" eliminada` + 
+      (currentStructureConfig.hashFunction === 'secuencial' ? ' y estructura reorganizada' : ` de Bloque ${foundBlockIndex + 1}, Posición ${foundPositionInBlock + 1}`),
+      'success'
+    );
     setDeleteKey('');
     markAsChanged();
   };
@@ -1196,6 +970,12 @@ function BloquesSearchSection({ onNavigate }) {
       const action = history[historyIndex];
       setMemoryArray(action.previousState);
       updateStructureVisualization(action.previousState);
+      
+      // Restaurar estado de bloques si existe
+      if (action.previousBlocks) {
+        setBlocks(action.previousBlocks);
+      }
+      
       setHistoryIndex(historyIndex - 1);
       showMessage(`Acción ${action.type} deshecha`, 'info');
       markAsChanged();
@@ -1207,6 +987,12 @@ function BloquesSearchSection({ onNavigate }) {
       const action = history[historyIndex + 1];
       setMemoryArray(action.newState);
       updateStructureVisualization(action.newState);
+      
+      // Restaurar estado de bloques si existe
+      if (action.newBlocks) {
+        setBlocks(action.newBlocks);
+      }
+      
       setHistoryIndex(historyIndex + 1);
       showMessage(`Acción ${action.type} rehecha`, 'info');
       markAsChanged();
@@ -1215,50 +1001,114 @@ function BloquesSearchSection({ onNavigate }) {
 
   const speedLabels = ['Muy Lento', 'Lento', 'Normal', 'Rápido', 'Muy Rápido'];
 
-  // Función para renderizar la estructura optimizada con highlights de búsqueda
-  const renderStructureTable = () => {
-    if (!isStructureCreated || structureData.length === 0) {
-      return null;
-    }
+  // Función para renderizar un solo bloque
+  const renderBlock = (blockIndex) => {
+    if (!blocks[blockIndex]) return null;
 
-    const activeCollisionMethod = isStructureCreated ? currentStructureConfig.collisionMethod : collisionMethod;
-    const isChaining = activeCollisionMethod === 'encadenamiento';
-
-    // Obtener todas las posiciones que necesitamos mostrar (primera, última, ocupadas, destacadas, búsqueda)
-    const occupiedPositions = structureData
-      .map((item, index) => ({ ...item, index }))
-      .filter(item => {
-        if (isChaining) {
-          return Array.isArray(item.value) && item.value.length > 0;
-        }
-        return item.value !== null;
-      });
-    
-    const highlightedPositions = structureData
-      .map((item, index) => ({ ...item, index }))
-      .filter(item => item.isHighlighted);
-    
-    // Agregar posiciones con highlights de búsqueda
+    const block = blocks[blockIndex];
     const searchHighlightedPositions = searchHighlights.mainMemory || [];
     
-    // Crear lista de todas las posiciones a mostrar
+    // Determinar qué posiciones del bloque mostrar
     const positionsToShow = new Set();
-    positionsToShow.add(0); // Primera posición
-    if (structureData.length > 1) {
-      positionsToShow.add(structureData.length - 1); // Última posición
+    positionsToShow.add(0); // Primera posición del bloque
+    if (block.length > 1) {
+      positionsToShow.add(block.length - 1); // Última posición del bloque
     }
     
     // Agregar posiciones ocupadas
-    occupiedPositions.forEach(item => positionsToShow.add(item.index));
+    block.forEach((value, index) => {
+      if (value !== null) {
+        positionsToShow.add(index);
+      }
+    });
     
-    // Agregar posiciones destacadas
-    highlightedPositions.forEach(item => positionsToShow.add(item.index));
+    // Agregar posiciones resaltadas por búsqueda
+    block.forEach((value, index) => {
+      const globalPos = (blockIndex * currentStructureConfig.recordsPerBlock) + index;
+      if (searchHighlightedPositions.includes(globalPos)) {
+        positionsToShow.add(index);
+      }
+    });
     
-    // Agregar posiciones de búsqueda
-    searchHighlightedPositions.forEach(index => positionsToShow.add(index));
-    
-    // Convertir a array ordenado
     const sortedPositions = Array.from(positionsToShow).sort((a, b) => a - b);
+    
+    return (
+      <div className="block-table" style={{ 
+        marginBottom: '20px',
+        border: '2px solid #7f8c8d',
+        borderRadius: '8px',
+        overflow: 'hidden'
+      }}>
+        <div className="table-header" style={{
+          backgroundColor: '#34495e',
+          borderBottom: '2px solid #7f8c8d'
+        }}>
+          <span className="header-memory">Bloque {blockIndex + 1}</span>
+        </div>
+        
+        <div className="table-body">
+          {sortedPositions.map((posInBlock, arrayIndex) => {
+            const value = block[posInBlock];
+            const globalPos = (blockIndex * currentStructureConfig.recordsPerBlock) + posInBlock;
+            const nextPos = sortedPositions[arrayIndex + 1];
+            const hasGap = nextPos !== undefined && (nextPos - posInBlock) > 1;
+            
+            const isSearchHighlighted = searchHighlightedPositions.includes(globalPos);
+            
+            return (
+              <React.Fragment key={posInBlock}>
+                <div className={`table-row ${isSearchHighlighted ? 'highlighted' : ''}`}>
+                  <span className="row-number">{globalPos + 1}</span>
+                  <span className={`cell-memory ${!value ? 'empty' : ''}`}>
+                    {value || '—'}
+                  </span>
+                </div>
+                
+                {hasGap && (
+                  <div className="table-row ellipsis-row">
+                    <span className="row-number">⋮</span>
+                    <span className="cell-memory">⋮</span>
+                  </div>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  // Función para renderizar todos los bloques
+  const renderStructureTable = () => {
+    if (!isStructureCreated || blocks.length === 0) {
+      return null;
+    }
+
+    // Determinar qué bloques mostrar
+    const blocksToShow = new Set();
+    blocksToShow.add(0); // Primer bloque
+    if (blocks.length > 1) {
+      blocksToShow.add(blocks.length - 1); // Último bloque
+    }
+    
+    // Agregar bloques que tienen datos
+    blocks.forEach((block, index) => {
+      const hasData = block.some(value => value !== null);
+      if (hasData) {
+        blocksToShow.add(index);
+      }
+    });
+    
+    // Agregar bloques que están siendo resaltados por búsqueda
+    const searchHighlightedPositions = searchHighlights.mainMemory || [];
+    searchHighlightedPositions.forEach(globalPos => {
+      const blockIndex = Math.floor(globalPos / currentStructureConfig.recordsPerBlock);
+      if (blockIndex < blocks.length) {
+        blocksToShow.add(blockIndex);
+      }
+    });
+    
+    const sortedBlocks = Array.from(blocksToShow).sort((a, b) => a - b);
     
     return (
       <div className="structure-table">
@@ -1266,51 +1116,24 @@ function BloquesSearchSection({ onNavigate }) {
           <span className="header-memory">Memoria</span>
         </div>
         
-        <div className="table-body">
-          {sortedPositions.map((currentIndex, arrayIndex) => {
-            const item = structureData[currentIndex];
-            const nextIndex = sortedPositions[arrayIndex + 1];
-            const hasGap = nextIndex !== undefined && (nextIndex - currentIndex) > 1;
-            
-            // Verificar si esta posición está siendo resaltada por la búsqueda
-            const isSearchHighlighted = searchHighlightedPositions.includes(currentIndex);
-            const chainHighlights = searchHighlights.chainElements?.[currentIndex] || [];
+        <div className="blocks-container" style={{ padding: '10px' }}>
+          {sortedBlocks.map((blockIndex, arrayIndex) => {
+            const nextBlockIndex = sortedBlocks[arrayIndex + 1];
+            const hasGap = nextBlockIndex !== undefined && (nextBlockIndex - blockIndex) > 1;
             
             return (
-              <React.Fragment key={currentIndex}>
-                {/* Fila actual */}
-                <div className={`table-row ${item.isHighlighted || isSearchHighlighted ? 'highlighted' : ''}`}>
-                  <span className="row-number">{item.position}</span>
-                  {isChaining ? (
-                    <div className="cell-memory-chain">
-                      {Array.isArray(item.value) && item.value.length > 0 ? (
-                        <div className="chain-container">
-                          {item.value.map((key, idx) => {
-                            const isChainElementHighlighted = chainHighlights.includes(idx);
-                            return (
-                              <React.Fragment key={idx}>
-                                <span className={`chain-node ${isChainElementHighlighted ? 'chain-highlighted' : ''}`}>{key}</span>
-                                {idx < item.value.length - 1 && <span className="chain-arrow">→</span>}
-                              </React.Fragment>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <span className="empty">—</span>
-                      )}
-                    </div>
-                  ) : (
-                    <span className={`cell-memory ${!item.value ? 'empty' : ''}`}>
-                      {item.value || '—'}
-                    </span>
-                  )}
-                </div>
+              <React.Fragment key={blockIndex}>
+                {renderBlock(blockIndex)}
                 
-                {/* Puntos suspensivos solo si hay un salto en las posiciones */}
                 {hasGap && (
-                  <div className="table-row ellipsis-row">
-                    <span className="row-number">⋮</span>
-                    <span className="cell-memory">⋮</span>
+                  <div style={{ 
+                    textAlign: 'center', 
+                    padding: '10px', 
+                    color: '#666',
+                    fontSize: '20px',
+                    fontWeight: 'bold'
+                  }}>
+                    ⋮
                   </div>
                 )}
               </React.Fragment>
@@ -1322,76 +1145,6 @@ function BloquesSearchSection({ onNavigate }) {
   };
 
   // Renderizar tabla de arreglo anidado con highlights de búsqueda
-  const renderNestedArrayTable = (nestedArray) => {
-    if (!nestedArray || !nestedArray.array) {
-      return null;
-    }
-
-    // Obtener posiciones ocupadas
-    const occupiedPositions = nestedArray.array
-      .map((value, index) => ({ value, index, position: index + 1 }))
-      .filter(item => item.value !== null);
-    
-    // Obtener highlights de búsqueda para este arreglo
-    const arrayHighlights = searchHighlights.nestedArrays?.[nestedArray.id] || [];
-    
-    // Crear lista de posiciones a mostrar
-    const positionsToShow = new Set();
-    positionsToShow.add(0); // Primera posición
-    if (nestedArray.array.length > 1) {
-      positionsToShow.add(nestedArray.array.length - 1); // Última posición
-    }
-    
-    // Agregar posiciones ocupadas
-    occupiedPositions.forEach(item => positionsToShow.add(item.index));
-    
-    // Agregar posiciones de búsqueda
-    arrayHighlights.forEach(index => positionsToShow.add(index));
-    
-    // Convertir a array ordenado
-    const sortedPositions = Array.from(positionsToShow).sort((a, b) => a - b);
-    
-    return (
-      <div className="structure-table nested-table">
-        <div className="table-header">
-          <span className="header-memory">Memoria</span>
-        </div>
-        
-        <div className="table-body">
-          {sortedPositions.map((currentIndex, arrayIndex) => {
-            const value = nestedArray.array[currentIndex];
-            const position = currentIndex + 1;
-            const nextIndex = sortedPositions[arrayIndex + 1];
-            const hasGap = nextIndex !== undefined && (nextIndex - currentIndex) > 1;
-            
-            // Verificar si esta posición está siendo resaltada por la búsqueda
-            const isSearchHighlighted = arrayHighlights.includes(currentIndex);
-            
-            return (
-              <React.Fragment key={currentIndex}>
-                {/* Fila actual */}
-                <div className={`table-row ${isSearchHighlighted ? 'highlighted' : ''}`}>
-                  <span className="row-number">{position}</span>
-                  <span className={`cell-memory ${!value ? 'empty' : ''}`}>
-                    {value || '—'}
-                  </span>
-                </div>
-                
-                {/* Puntos suspensivos solo si hay un salto en las posiciones */}
-                {hasGap && (
-                  <div className="table-row ellipsis-row">
-                    <span className="row-number">⋮</span>
-                    <span className="cell-memory">⋮</span>
-                  </div>
-                )}
-              </React.Fragment>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="sequential-search-section">
       <div className="section-header">
@@ -1439,6 +1192,7 @@ function BloquesSearchSection({ onNavigate }) {
               onChange={(e) => setHashFunction(e.target.value)}
               className="config-select"
             >
+              <option value="secuencial">Ninguna (secuencial)</option>
               <option value="mod">Mod</option>
               <option value="cuadrado">Cuadrado</option>
               <option value="truncamiento">Truncamiento</option>
@@ -1678,27 +1432,17 @@ function BloquesSearchSection({ onNavigate }) {
           ) : (
             <div className="canvas-content">
               <div className="simulation-info">
-                <p><strong>Estructura:</strong> Tamaño {isStructureCreated ? currentStructureConfig.structureSize : structureSize}</p>
-                <p><strong>Función Hash:</strong> {isStructureCreated ? currentStructureConfig.hashFunction : hashFunction}</p>
-                <p><strong>Resolución de Colisiones:</strong> {isStructureCreated ? currentStructureConfig.collisionMethod : collisionMethod}</p>
+                <p><strong>Estructura:</strong> {isStructureCreated ? (
+                  `${currentStructureConfig.numBlocks} bloques de ${currentStructureConfig.recordsPerBlock} registros cada uno (Total: ${currentStructureConfig.structureSize} posiciones)`
+                ) : (
+                  `Tamaño ${structureSize}`
+                )}</p>
+                <p><strong>Función Mod:</strong> {isStructureCreated ? currentStructureConfig.hashFunction : hashFunction}</p>
+                <p><strong>Método de Colisión:</strong> {isStructureCreated ? currentStructureConfig.collisionMethod : collisionMethod}</p>
                 <p><strong>Tipo de Clave:</strong> Numérica de {isStructureCreated ? currentStructureConfig.keySize : keySize} dígitos</p>
                 <p><strong>Elementos:</strong> {
                   (() => {
-                    const activeCollisionMethod = isStructureCreated ? currentStructureConfig.collisionMethod : collisionMethod;
-                    let count = 0;
-                    
-                    if (activeCollisionMethod === 'encadenamiento') {
-                      count = memoryArray.reduce((sum, chain) => sum + (Array.isArray(chain) ? chain.length : 0), 0);
-                    } else if (activeCollisionMethod === 'arreglos') {
-                      const mainCount = memoryArray.filter(item => item !== null).length;
-                      const nestedCount = nestedArrays.reduce((sum, nested) => 
-                        sum + nested.array.filter(item => item !== null).length, 0
-                      );
-                      count = mainCount + nestedCount;
-                    } else {
-                      count = memoryArray.filter(item => item !== null).length;
-                    }
-                    
+                    const count = memoryArray.filter(item => item !== null).length;
                     return `${count}/${isStructureCreated ? currentStructureConfig.structureSize : structureSize}`;
                   })()
                 }</p>
@@ -1784,18 +1528,6 @@ function BloquesSearchSection({ onNavigate }) {
                   <div className="main-memory-container">
                     {renderStructureTable()}
                   </div>
-                  
-                  {/* Mostrar arreglos anidados si el método es 'arreglos' */}
-                  {(isStructureCreated ? currentStructureConfig.collisionMethod : collisionMethod) === 'arreglos' && nestedArrays.length > 0 && (
-                    <>
-                      {nestedArrays.map((nestedArray) => (
-                        <div key={nestedArray.id} className="nested-array-section">
-                          <h4>Arreglo {nestedArray.id}</h4>
-                          {renderNestedArrayTable(nestedArray)}
-                        </div>
-                      ))}
-                    </>
-                  )}
                 </div>
               </div>
             </div>
