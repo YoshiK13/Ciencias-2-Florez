@@ -115,6 +115,13 @@ function App() {
         setCurrentSection(section);
         console.log('Navegando a:', section);
       });
+    }
+    // Verificar si hay cambios no guardados en Búsqueda por Bloques
+    else if (currentSection === 'bloques' && window.bloquesSearchCheckUnsavedChanges) {
+      window.bloquesSearchCheckUnsavedChanges(section, () => {
+        setCurrentSection(section);
+        console.log('Navegando a:', section);
+      });
     } else {
       setCurrentSection(section);
       console.log('Navegando a:', section);
