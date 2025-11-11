@@ -213,7 +213,8 @@ function HashFunctionSection({ onNavigate }) {
       const str = squared.toString();
       
       // Calcular cuántos dígitos tomar según el tamaño de la estructura
-      const digitsNeeded = Math.floor(Math.log10(size)) + 1;
+      // Para size-1 porque los índices van de 0 a size-1
+      const digitsNeeded = (size - 1).toString().length;
       
       // Tomar dígitos centrales
       const startIndex = Math.max(0, Math.floor((str.length - digitsNeeded) / 2));
@@ -735,7 +736,7 @@ function HashFunctionSection({ onNavigate }) {
       if (activeHashFunction === 'cuadrado') {
         const squared = Math.pow(parseInt(key), 2);
         const str = squared.toString();
-        const digitsNeeded = Math.floor(Math.log10(size)) + 1;
+        const digitsNeeded = (size - 1).toString().length;
         const startIndex = Math.max(0, Math.floor((str.length - digitsNeeded) / 2));
         const extracted = str.substring(startIndex, startIndex + digitsNeeded);
         const result = parseInt(extracted || '0');

@@ -48,6 +48,13 @@ function BloquesSearchSection({ onNavigate }) {
   
   // Estado para arreglos anidados (solo para método 'arreglos')
   const [nestedArrays, setNestedArrays] = useState([]);
+
+  // Efecto para forzar collisionMethod a 'secuencial' cuando hashFunction es 'secuencial' o 'binario'
+  React.useEffect(() => {
+    if (hashFunction === 'secuencial' || hashFunction === 'binario') {
+      setCollisionMethod('secuencial');
+    }
+  }, [hashFunction]);
   
   // Estados para visualización de búsqueda
   const [searchHighlights, setSearchHighlights] = useState({
@@ -236,20 +243,26 @@ function BloquesSearchSection({ onNavigate }) {
       const str = squared.toString();
       
       // Calcular cuántos dígitos tomar según el tamaño de la estructura
-      const digitsNeeded = Math.floor(Math.log10(size)) + 1;
+      // Para size-1 porque los índices van de 0 a size-1
+      const digitsNeeded = (size - 1).toString().length;
       
       // Tomar dígitos centrales
       const startIndex = Math.max(0, Math.floor((str.length - digitsNeeded) / 2));
       const extracted = str.substring(startIndex, startIndex + digitsNeeded);
       
-      const result = parseInt(extracted || '0');
+      let result = parseInt(extracted || '0');
       
-      // Si el resultado es mayor o igual al tamaño, aplicar la función hash nuevamente
-      if (result >= size) {
-        return hashFunctions.cuadrado(result.toString(), size);
+      // Sumar 1 al resultado de los dígitos centrales
+      result = result + 1;
+      
+      // Si el resultado es mayor al tamaño, aplicar módulo
+      if (result > size) {
+        result = result % size;
+        if (result === 0) result = size; // Si da 0, usar el tamaño máximo
       }
       
-      return result;
+      // Retornar índice base 0 (restar 1 porque las posiciones son base 1)
+      return result - 1;
     },
     truncamiento: (key, size) => {
       // Definir posiciones específicas a tomar (siempre las mismas para todas las claves)
@@ -297,7 +310,97 @@ function BloquesSearchSection({ onNavigate }) {
       }
       
       return sum;
+    },
+    'conversion-base': (key, size) => {
+      // Conversión de base 7
+      const base = 7;
+      let sum = 0;
+      
+      // Convertir cada dígito: suma de (dígito * base^posición)
+      for (let i = 0; i < key.length; i++) {
+        const digit = parseInt(key[i]);
+        const power = key.length - 1 - i; // Potencia desde el final
+        sum += digit * Math.pow(base, power);
+      }
+      
+      // Calcular cuántos dígitos tomar según el tamaño de la estructura
+      // Para size-1 porque los índices van de 0 a size-1
+      const digitsNeeded = (size - 1).toString().length;
+      
+      // Tomar los dígitos menos significativos
+      const sumStr = sum.toString();
+      const extracted = sumStr.slice(-digitsNeeded); // Últimos N dígitos
+      
+      let result = parseInt(extracted || '0');
+      
+      // El resultado representa una posición (base 1), convertir a índice (base 0)
+      if (result > 0) {
+        result = result - 1;
+      }
+      
+      // Si el resultado es mayor o igual al tamaño, aplicar módulo
+      if (result >= size) {
+        return result % size;
+      }
+      
+      return result;
     }
+  };
+
+  // Función para manejar colisiones
+  const handleCollision = (blocks, key, initialPosition) => {
+    const newBlocks = blocks.map(block => [...block]);
+    const method = currentStructureConfig.collisionMethod;
+    
+    if (method === 'secuencial') {
+      // Búsqueda secuencial desde la posición de colisión
+      let foundPosition = false;
+      let finalBlockIndex = -1;
+      let finalPositionInBlock = -1;
+      let finalGlobalPosition = -1;
+      
+      // Buscar desde la posición siguiente
+      for (let offset = 1; offset < currentStructureConfig.structureSize; offset++) {
+        const nextGlobalPos = (initialPosition + offset) % currentStructureConfig.structureSize;
+        const nextBlockIndex = Math.floor(nextGlobalPos / currentStructureConfig.recordsPerBlock);
+        const nextPosInBlock = nextGlobalPos % currentStructureConfig.recordsPerBlock;
+        
+        if (newBlocks[nextBlockIndex][nextPosInBlock] === null) {
+          newBlocks[nextBlockIndex][nextPosInBlock] = key;
+          foundPosition = true;
+          finalBlockIndex = nextBlockIndex;
+          finalPositionInBlock = nextPosInBlock;
+          finalGlobalPosition = nextGlobalPos;
+          break;
+        }
+      }
+      
+      if (!foundPosition) {
+        return { success: false, message: 'No hay espacio disponible (colisión secuencial)' };
+      }
+      
+      return {
+        success: true,
+        blocks: newBlocks,
+        blockIndex: finalBlockIndex,
+        positionInBlock: finalPositionInBlock,
+        globalPosition: finalGlobalPosition
+      };
+    } else if (method === 'area-colisiones') {
+      // Área de colisiones: buscar en un área específica al final
+      showMessage('Método de área de colisiones aún no implementado completamente', 'warning');
+      return { success: false, message: 'Método no implementado' };
+    } else if (method === 'area-bloques') {
+      // Área de bloques: cada bloque tiene un área de overflow
+      showMessage('Método de área de bloques aún no implementado completamente', 'warning');
+      return { success: false, message: 'Método no implementado' };
+    } else if (method === 'encadenamiento') {
+      // Encadenamiento: crear listas enlazadas
+      showMessage('Método de encadenamiento aún no implementado completamente', 'warning');
+      return { success: false, message: 'Método no implementado' };
+    }
+    
+    return { success: false, message: 'Método de colisión no reconocido' };
   };
 
   // Función para crear el objeto de datos para guardar
@@ -683,8 +786,8 @@ function BloquesSearchSection({ onNavigate }) {
     let insertedPositionInBlock = -1;
     let globalPosition = -1;
 
-    // Si la función es secuencial, ordenar todas las claves
-    if (currentStructureConfig.hashFunction === 'secuencial') {
+    // Si la función es secuencial o binario, ordenar todas las claves
+    if (currentStructureConfig.hashFunction === 'secuencial' || currentStructureConfig.hashFunction === 'binario') {
       // Recolectar todas las claves existentes
       const allKeys = [];
       for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
@@ -727,32 +830,48 @@ function BloquesSearchSection({ onNavigate }) {
         keyIndex++;
       }
     } else {
-      // Búsqueda secuencial normal (sin ordenar)
+      // Usar función hash para calcular la posición
       newBlocks = blocks.map(block => [...block]);
+      newMemoryArray = [...memoryArray];
       
-      for (let blockIndex = 0; blockIndex < newBlocks.length; blockIndex++) {
-        for (let pos = 0; pos < newBlocks[blockIndex].length; pos++) {
-          if (newBlocks[blockIndex][pos] === null) {
-            newBlocks[blockIndex][pos] = formattedKey;
-            insertedBlockIndex = blockIndex;
-            insertedPositionInBlock = pos;
-            break;
-          }
-        }
-        if (insertedBlockIndex !== -1) break;
-      }
-
-      if (insertedBlockIndex === -1) {
-        showMessage('Error: No se pudo insertar la clave', 'error');
+      // Calcular posición usando la función hash
+      const hashFunc = hashFunctions[currentStructureConfig.hashFunction];
+      if (!hashFunc) {
+        showMessage('Función hash no implementada', 'error');
         return;
       }
-
-      // Actualizar array plano para visualización (mantener compatibilidad)
-      newMemoryArray = [...memoryArray];
-      globalPosition = (insertedBlockIndex * currentStructureConfig.recordsPerBlock) + insertedPositionInBlock;
-      if (globalPosition < newMemoryArray.length) {
-        newMemoryArray[globalPosition] = formattedKey;
+      
+      globalPosition = hashFunc(formattedKey, currentStructureConfig.structureSize);
+      
+      // Determinar bloque y posición dentro del bloque
+      insertedBlockIndex = Math.floor(globalPosition / currentStructureConfig.recordsPerBlock);
+      insertedPositionInBlock = globalPosition % currentStructureConfig.recordsPerBlock;
+      
+      // Verificar si la posición está ocupada
+      if (newBlocks[insertedBlockIndex][insertedPositionInBlock] !== null) {
+        // Hay colisión, aplicar método de colisión
+        const collisionResult = handleCollision(
+          newBlocks,
+          formattedKey,
+          globalPosition
+        );
+        
+        if (!collisionResult.success) {
+          showMessage(collisionResult.message || 'No se pudo insertar la clave', 'error');
+          return;
+        }
+        
+        insertedBlockIndex = collisionResult.blockIndex;
+        insertedPositionInBlock = collisionResult.positionInBlock;
+        globalPosition = collisionResult.globalPosition;
+        newBlocks = collisionResult.blocks;
+      } else {
+        // Posición libre, insertar directamente
+        newBlocks[insertedBlockIndex][insertedPositionInBlock] = formattedKey;
       }
+      
+      // Actualizar array plano para visualización
+      newMemoryArray[globalPosition] = formattedKey;
     }
 
     // Actualizar bloques y memoria
@@ -806,32 +925,165 @@ function BloquesSearchSection({ onNavigate }) {
     let foundGlobalPosition = -1;
     let steps = 0;
 
-    // Buscar en cada bloque secuencialmente
-    for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
-      for (let pos = 0; pos < blocks[blockIndex].length; pos++) {
-        steps++;
-        const globalPos = (blockIndex * currentStructureConfig.recordsPerBlock) + pos;
+    // Búsqueda binaria por bloques
+    if (currentStructureConfig.hashFunction === 'binario') {
+      for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
+        const block = blocks[blockIndex];
         
-        // Iluminar posición actual
-        if (globalPos < memoryArray.length) {
-          setSearchHighlights({
-            mainMemory: [globalPos],
-            nestedArrays: {},
-            chainElements: {}
-          });
+        // Encontrar la última posición ocupada del bloque
+        let lastOccupiedPos = -1;
+        for (let i = block.length - 1; i >= 0; i--) {
+          if (block[i] !== null) {
+            lastOccupiedPos = i;
+            break;
+          }
         }
         
-        await new Promise(resolve => setTimeout(resolve, delay));
-
-        if (blocks[blockIndex][pos] === formattedKey) {
-          found = true;
-          foundBlockIndex = blockIndex;
-          foundPositionInBlock = pos;
-          foundGlobalPosition = globalPos;
+        // Si el bloque está vacío, la clave no está en la memoria
+        if (lastOccupiedPos === -1) {
           break;
         }
+        
+        const lastKey = block[lastOccupiedPos];
+        const lastGlobalPos = (blockIndex * currentStructureConfig.recordsPerBlock) + lastOccupiedPos;
+        
+        // Iluminar última clave del bloque
+        steps++;
+        setSearchHighlights({
+          mainMemory: [lastGlobalPos],
+          nestedArrays: {},
+          chainElements: {}
+        });
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        // Si la última clave es la que buscamos, encontrado directamente
+        if (lastKey === formattedKey) {
+          found = true;
+          foundBlockIndex = blockIndex;
+          foundPositionInBlock = lastOccupiedPos;
+          foundGlobalPosition = lastGlobalPos;
+          break;
+        }
+        
+        // Si la última clave es mayor, buscar secuencialmente en este bloque
+        if (lastKey > formattedKey) {
+          // Buscar desde el primer registro hasta el penúltimo
+          for (let pos = 0; pos < lastOccupiedPos; pos++) {
+            if (block[pos] === null) continue;
+            
+            steps++;
+            const globalPos = (blockIndex * currentStructureConfig.recordsPerBlock) + pos;
+            
+            setSearchHighlights({
+              mainMemory: [globalPos],
+              nestedArrays: {},
+              chainElements: {}
+            });
+            await new Promise(resolve => setTimeout(resolve, delay));
+            
+            if (block[pos] === formattedKey) {
+              found = true;
+              foundBlockIndex = blockIndex;
+              foundPositionInBlock = pos;
+              foundGlobalPosition = globalPos;
+              break;
+            }
+          }
+          break; // Salir del for de bloques
+        }
+        
+        // Si la última clave es menor, continuar al siguiente bloque
+        // (el loop continúa automáticamente)
       }
-      if (found) break;
+    } else if (currentStructureConfig.hashFunction === 'secuencial') {
+      // Búsqueda secuencial normal
+      for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
+        for (let pos = 0; pos < blocks[blockIndex].length; pos++) {
+          steps++;
+          const globalPos = (blockIndex * currentStructureConfig.recordsPerBlock) + pos;
+          
+          // Iluminar posición actual
+          if (globalPos < memoryArray.length) {
+            setSearchHighlights({
+              mainMemory: [globalPos],
+              nestedArrays: {},
+              chainElements: {}
+            });
+          }
+          
+          await new Promise(resolve => setTimeout(resolve, delay));
+
+          if (blocks[blockIndex][pos] === formattedKey) {
+            found = true;
+            foundBlockIndex = blockIndex;
+            foundPositionInBlock = pos;
+            foundGlobalPosition = globalPos;
+            break;
+          }
+        }
+        if (found) break;
+      }
+    } else {
+      // Búsqueda con función hash
+      const hashFunc = hashFunctions[currentStructureConfig.hashFunction];
+      if (!hashFunc) {
+        showMessage('Función hash no implementada', 'error');
+        setIsSimulating(false);
+        return;
+      }
+      
+      // Calcular posición inicial con la función hash
+      const hashPosition = hashFunc(formattedKey, currentStructureConfig.structureSize);
+      const initialBlockIndex = Math.floor(hashPosition / currentStructureConfig.recordsPerBlock);
+      const initialPositionInBlock = hashPosition % currentStructureConfig.recordsPerBlock;
+      
+      // Iluminar posición inicial
+      steps++;
+      setSearchHighlights({
+        mainMemory: [hashPosition],
+        nestedArrays: {},
+        chainElements: {}
+      });
+      await new Promise(resolve => setTimeout(resolve, delay));
+      
+      // Verificar si la clave está en la posición calculada
+      if (blocks[initialBlockIndex][initialPositionInBlock] === formattedKey) {
+        found = true;
+        foundBlockIndex = initialBlockIndex;
+        foundPositionInBlock = initialPositionInBlock;
+        foundGlobalPosition = hashPosition;
+      } else {
+        // Si no está, buscar con el método de colisión
+        if (currentStructureConfig.collisionMethod === 'secuencial') {
+          // Búsqueda secuencial desde la siguiente posición
+          for (let offset = 1; offset < currentStructureConfig.structureSize; offset++) {
+            const nextGlobalPos = (hashPosition + offset) % currentStructureConfig.structureSize;
+            const nextBlockIndex = Math.floor(nextGlobalPos / currentStructureConfig.recordsPerBlock);
+            const nextPosInBlock = nextGlobalPos % currentStructureConfig.recordsPerBlock;
+            
+            steps++;
+            setSearchHighlights({
+              mainMemory: [nextGlobalPos],
+              nestedArrays: {},
+              chainElements: {}
+            });
+            await new Promise(resolve => setTimeout(resolve, delay));
+            
+            if (blocks[nextBlockIndex][nextPosInBlock] === formattedKey) {
+              found = true;
+              foundBlockIndex = nextBlockIndex;
+              foundPositionInBlock = nextPosInBlock;
+              foundGlobalPosition = nextGlobalPos;
+              break;
+            }
+            
+            // Si encontramos un espacio vacío, la clave no está
+            if (blocks[nextBlockIndex][nextPosInBlock] === null) {
+              break;
+            }
+          }
+        }
+      }
     }
 
     // Limpiar highlights
@@ -1111,7 +1363,11 @@ function BloquesSearchSection({ onNavigate }) {
     const sortedBlocks = Array.from(blocksToShow).sort((a, b) => a - b);
     
     return (
-      <div className="structure-table">
+      <div className="structure-table" style={{
+        border: '2px solid #7f8c8d',
+        borderRadius: '8px',
+        overflow: 'hidden'
+      }}>
         <div className="table-header">
           <span className="header-memory">Memoria</span>
         </div>
@@ -1185,20 +1441,22 @@ function BloquesSearchSection({ onNavigate }) {
           </div>
 
           <div className="config-group">
-            <label htmlFor="hashFunction">Función Hash</label>
+            <label htmlFor="hashFunction">Método de Búsqueda</label>
             <select
               id="hashFunction"
               value={hashFunction}
               onChange={(e) => setHashFunction(e.target.value)}
               className="config-select"
             >
-              <option value="secuencial">Ninguna (secuencial)</option>
-              <option value="mod">Mod</option>
-              <option value="cuadrado">Cuadrado</option>
-              <option value="truncamiento">Truncamiento</option>
-              <option value="plegamiento">Plegamiento</option>
+              <option value="secuencial">Secuencial</option>
+              <option value="binario">Binario</option>
+              <option value="mod">F.Hash: MOD</option>
+              <option value="cuadrado">F.Hash: Cuadrado</option>
+              <option value="truncamiento">F.Hash: Truncamiento</option>
+              <option value="plegamiento">F.Hash: Plegamiento</option>
+              <option value="conversion-base">F.Hash: Conversión Base</option>
             </select>
-            <small>Método para calcular el índice hash</small>
+            <small>Forma de buscar elementos</small>
           </div>
 
           <div className="config-group">
@@ -1208,14 +1466,18 @@ function BloquesSearchSection({ onNavigate }) {
               value={collisionMethod}
               onChange={(e) => setCollisionMethod(e.target.value)}
               className="config-select"
+              disabled={hashFunction === 'secuencial' || hashFunction === 'binario'}
             >
               <option value="secuencial">Secuencial</option>
-              <option value="cuadratica">Cuadrática</option>
-              <option value="hashmod">Hash Mod</option>
-              <option value="arreglos">Arreglos</option>
+              <option value="area-colisiones">Área colisiones</option>
+              <option value="area-bloques">Área bloques</option>
               <option value="encadenamiento">Encadenamiento</option>
             </select>
-            <small>Método para resolver colisiones</small>
+            <small>
+              {hashFunction === 'secuencial' || hashFunction === 'binario' 
+                ? 'Bloqueado en método actual' 
+                : 'Método para resolver colisiones'}
+            </small>
           </div>
 
           <div className="button-container">
@@ -1437,7 +1699,7 @@ function BloquesSearchSection({ onNavigate }) {
                 ) : (
                   `Tamaño ${structureSize}`
                 )}</p>
-                <p><strong>Función Mod:</strong> {isStructureCreated ? currentStructureConfig.hashFunction : hashFunction}</p>
+                <p><strong>Método de Búsqueda:</strong> {isStructureCreated ? currentStructureConfig.hashFunction : hashFunction}</p>
                 <p><strong>Método de Colisión:</strong> {isStructureCreated ? currentStructureConfig.collisionMethod : collisionMethod}</p>
                 <p><strong>Tipo de Clave:</strong> Numérica de {isStructureCreated ? currentStructureConfig.keySize : keySize} dígitos</p>
                 <p><strong>Elementos:</strong> {
