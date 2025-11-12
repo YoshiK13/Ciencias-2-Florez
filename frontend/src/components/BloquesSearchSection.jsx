@@ -48,6 +48,11 @@ function BloquesSearchSection({ onNavigate }) {
   
   // Estado para arreglos anidados (solo para método 'arreglos')
   const [nestedArrays, setNestedArrays] = useState([]);
+  
+  // Estados para áreas de colisiones
+  const [collisionArea, setCollisionArea] = useState([]); // Array simple para área de colisiones
+  const [collisionBlocks, setCollisionBlocks] = useState([]); // Array de bloques para área con bloques
+  const [collisionChains, setCollisionChains] = useState({}); // Objeto: blockIndex -> array de arrays (cadenas)
 
   // Efecto para forzar collisionMethod a 'secuencial' cuando hashFunction es 'secuencial' o 'binario'
   React.useEffect(() => {
@@ -387,17 +392,180 @@ function BloquesSearchSection({ onNavigate }) {
         globalPosition: finalGlobalPosition
       };
     } else if (method === 'area-colisiones') {
-      // Área de colisiones: buscar en un área específica al final
-      showMessage('Método de área de colisiones aún no implementado completamente', 'warning');
-      return { success: false, message: 'Método no implementado' };
-    } else if (method === 'area-bloques') {
-      // Área de bloques: cada bloque tiene un área de overflow
-      showMessage('Método de área de bloques aún no implementado completamente', 'warning');
-      return { success: false, message: 'Método no implementado' };
+      // Área de colisiones: crear tabla separada para todas las colisiones
+      const newCollisionArea = [...collisionArea];
+      
+      // Buscar primera posición libre en el área de colisiones (secuencial)
+      let foundPosition = false;
+      let collisionIndex = -1;
+      
+      for (let i = 0; i < currentStructureConfig.structureSize; i++) {
+        if (!newCollisionArea[i] || newCollisionArea[i] === null) {
+          newCollisionArea[i] = key;
+          collisionIndex = i;
+          foundPosition = true;
+          break;
+        }
+      }
+      
+      if (!foundPosition) {
+        return { success: false, message: 'No hay espacio en el área de colisiones' };
+      }
+      
+      // Actualizar el área de colisiones
+      setCollisionArea(newCollisionArea);
+      
+      return {
+        success: true,
+        blocks: newBlocks,
+        blockIndex: -1, // Indica que está en área de colisiones
+        positionInBlock: -1,
+        globalPosition: -1,
+        collisionIndex: collisionIndex,
+        isInCollisionArea: true
+      };
+    } else if (method === 'area-con-bloques') {
+      // Área con bloques: misma estructura de bloques pero para colisiones
+      const newCollisionBlocks = collisionBlocks.length > 0 
+        ? collisionBlocks.map(block => [...block])
+        : blocks.map(block => block.map(() => null)); // Crear estructura igual si no existe
+      
+      // Determinar en qué bloque ocurrió la colisión
+      const collisionBlockIndex = Math.floor(initialPosition / currentStructureConfig.recordsPerBlock);
+      
+      // Buscar posición libre en ese mismo bloque del área de colisiones (secuencial)
+      let foundPosition = false;
+      let collisionPosInBlock = -1;
+      
+      for (let pos = 0; pos < newCollisionBlocks[collisionBlockIndex].length; pos++) {
+        if (newCollisionBlocks[collisionBlockIndex][pos] === null) {
+          newCollisionBlocks[collisionBlockIndex][pos] = key;
+          collisionPosInBlock = pos;
+          foundPosition = true;
+          break;
+        }
+      }
+      
+      if (!foundPosition) {
+        return { success: false, message: 'No hay espacio en el bloque de colisiones' };
+      }
+      
+      // Actualizar el área de bloques de colisiones
+      setCollisionBlocks(newCollisionBlocks);
+      
+      return {
+        success: true,
+        blocks: newBlocks,
+        blockIndex: -1,
+        positionInBlock: -1,
+        globalPosition: -1,
+        collisionBlockIndex: collisionBlockIndex,
+        collisionPosInBlock: collisionPosInBlock,
+        isInCollisionBlocks: true
+      };
+    } else if (method === 'bloques-colision') {
+      // Bloques de colisión: debajo de cada bloque está su bloque de colisiones
+      const newCollisionBlocks = collisionBlocks.length > 0 
+        ? collisionBlocks.map(block => [...block])
+        : blocks.map(block => block.map(() => null)); // Crear estructura igual si no existe
+      
+      // Determinar en qué bloque ocurrió la colisión
+      const collisionBlockIndex = Math.floor(initialPosition / currentStructureConfig.recordsPerBlock);
+      
+      // Buscar posición libre en ese mismo bloque de colisiones (secuencial)
+      let foundPosition = false;
+      let collisionPosInBlock = -1;
+      
+      for (let pos = 0; pos < newCollisionBlocks[collisionBlockIndex].length; pos++) {
+        if (newCollisionBlocks[collisionBlockIndex][pos] === null) {
+          newCollisionBlocks[collisionBlockIndex][pos] = key;
+          collisionPosInBlock = pos;
+          foundPosition = true;
+          break;
+        }
+      }
+      
+      if (!foundPosition) {
+        return { success: false, message: 'No hay espacio en el bloque de colisiones' };
+      }
+      
+      // Actualizar los bloques de colisiones
+      setCollisionBlocks(newCollisionBlocks);
+      
+      return {
+        success: true,
+        blocks: newBlocks,
+        blockIndex: -1,
+        positionInBlock: -1,
+        globalPosition: -1,
+        collisionBlockIndex: collisionBlockIndex,
+        collisionPosInBlock: collisionPosInBlock,
+        isInBloqueColision: true
+      };
     } else if (method === 'encadenamiento') {
-      // Encadenamiento: crear listas enlazadas
-      showMessage('Método de encadenamiento aún no implementado completamente', 'warning');
-      return { success: false, message: 'Método no implementado' };
+      // Encadenamiento: crear cadenas de bloques de colisión
+      const newCollisionChains = { ...collisionChains };
+      
+      // Determinar el bloque y posición dentro del bloque
+      const collisionBlockIndex = Math.floor(initialPosition / currentStructureConfig.recordsPerBlock);
+      const posInBlock = initialPosition % currentStructureConfig.recordsPerBlock;
+      
+      // Inicializar la cadena para este bloque si no existe
+      if (!newCollisionChains[collisionBlockIndex]) {
+        newCollisionChains[collisionBlockIndex] = [];
+      }
+      
+      // Buscar en qué cadena insertar (basado en la posición dentro del bloque)
+      let chainIndex = -1;
+      
+      // Buscar si ya existe una cadena para esta posición
+      for (let i = 0; i < newCollisionChains[collisionBlockIndex].length; i++) {
+        const chain = newCollisionChains[collisionBlockIndex][i];
+        if (chain.position === posInBlock) {
+          chainIndex = i;
+          break;
+        }
+      }
+      
+      // Si no existe cadena para esta posición, crear una nueva
+      if (chainIndex === -1) {
+        const newChain = {
+          position: posInBlock, // Posición original en el bloque
+          blocks: [blocks[collisionBlockIndex].map(() => null)] // Primer bloque de colisión
+        };
+        newChain.blocks[0][posInBlock] = key;
+        newCollisionChains[collisionBlockIndex].push(newChain);
+        chainIndex = newCollisionChains[collisionBlockIndex].length - 1;
+      } else {
+        // Ya existe cadena, agregar a la última tabla de la cadena o crear nueva
+        const chain = newCollisionChains[collisionBlockIndex][chainIndex];
+        const lastBlock = chain.blocks[chain.blocks.length - 1];
+        
+        if (lastBlock[posInBlock] === null) {
+          // Hay espacio en el último bloque de la cadena
+          lastBlock[posInBlock] = key;
+        } else {
+          // No hay espacio, crear nuevo bloque en la cadena
+          const newChainBlock = blocks[collisionBlockIndex].map(() => null);
+          newChainBlock[posInBlock] = key;
+          chain.blocks.push(newChainBlock);
+        }
+      }
+      
+      // Actualizar las cadenas de colisiones
+      setCollisionChains(newCollisionChains);
+      
+      return {
+        success: true,
+        blocks: newBlocks,
+        blockIndex: -1,
+        positionInBlock: -1,
+        globalPosition: -1,
+        collisionBlockIndex: collisionBlockIndex,
+        collisionPosInBlock: posInBlock,
+        chainIndex: chainIndex,
+        isInEncadenamiento: true
+      };
     }
     
     return { success: false, message: 'Método de colisión no reconocido' };
@@ -422,6 +590,9 @@ function BloquesSearchSection({ onNavigate }) {
       data: {
         memoryArray: [...memoryArray],
         blocks: blocks.map(block => [...block]), // Guardar estructura de bloques
+        collisionArea: [...collisionArea], // Guardar área de colisiones
+        collisionBlocks: collisionBlocks.map(block => [...block]), // Guardar bloques de colisiones
+        collisionChains: JSON.parse(JSON.stringify(collisionChains)), // Guardar cadenas de colisiones
         isStructureCreated: isStructureCreated
       },
       metadata: {
@@ -588,6 +759,9 @@ function BloquesSearchSection({ onNavigate }) {
         // Cargar datos
         setMemoryArray(loadedData.data.memoryArray || []);
         setBlocks(loadedData.data.blocks || []); // Cargar estructura de bloques
+        setCollisionArea(loadedData.data.collisionArea || []); // Cargar área de colisiones
+        setCollisionBlocks(loadedData.data.collisionBlocks || []); // Cargar bloques de colisiones
+        setCollisionChains(loadedData.data.collisionChains || {}); // Cargar cadenas de encadenamiento
         setIsStructureCreated(loadedData.data.isStructureCreated || false);
         
         // Limpiar historial y estados
@@ -728,6 +902,11 @@ function BloquesSearchSection({ onNavigate }) {
       // Inicializar arreglos anidados vacíos
       setNestedArrays([]);
       
+      // Inicializar áreas de colisiones vacías
+      setCollisionArea(Array(structureSize).fill(null));
+      setCollisionBlocks(emptyBlocks.map(block => block.map(() => null)));
+      setCollisionChains({}); // Inicializar cadenas vacías
+      
       updateStructureVisualization(emptyArray);
       setHistory([]);
       setHistoryIndex(-1);
@@ -861,10 +1040,30 @@ function BloquesSearchSection({ onNavigate }) {
           return;
         }
         
-        insertedBlockIndex = collisionResult.blockIndex;
-        insertedPositionInBlock = collisionResult.positionInBlock;
-        globalPosition = collisionResult.globalPosition;
         newBlocks = collisionResult.blocks;
+        
+        // Verificar si se insertó en área de colisiones
+        if (collisionResult.isInCollisionArea) {
+          insertedBlockIndex = -1;
+          insertedPositionInBlock = -1;
+          globalPosition = collisionResult.collisionIndex;
+        } else if (collisionResult.isInCollisionBlocks) {
+          insertedBlockIndex = collisionResult.collisionBlockIndex;
+          insertedPositionInBlock = collisionResult.collisionPosInBlock;
+          globalPosition = -1;
+        } else if (collisionResult.isInBloqueColision) {
+          insertedBlockIndex = collisionResult.collisionBlockIndex;
+          insertedPositionInBlock = collisionResult.collisionPosInBlock;
+          globalPosition = -2; // Usamos -2 para distinguir de área con bloques
+        } else if (collisionResult.isInEncadenamiento) {
+          insertedBlockIndex = collisionResult.collisionBlockIndex;
+          insertedPositionInBlock = collisionResult.collisionPosInBlock;
+          globalPosition = -3; // Usamos -3 para encadenamiento
+        } else {
+          insertedBlockIndex = collisionResult.blockIndex;
+          insertedPositionInBlock = collisionResult.positionInBlock;
+          globalPosition = collisionResult.globalPosition;
+        }
       } else {
         // Posición libre, insertar directamente
         newBlocks[insertedBlockIndex][insertedPositionInBlock] = formattedKey;
@@ -892,10 +1091,26 @@ function BloquesSearchSection({ onNavigate }) {
       newMemory: newMemoryArray
     });
 
-    showMessage(
-      `Clave "${formattedKey}" insertada en Bloque ${insertedBlockIndex + 1}, Posición ${insertedPositionInBlock + 1} (Posición global: ${globalPosition + 1})`,
-      'success'
-    );
+    // Mensaje de éxito
+    let successMessage = '';
+    if (insertedBlockIndex === -1 && globalPosition >= 0) {
+      // Insertado en área de colisiones
+      successMessage = `Clave "${formattedKey}" insertada en Área de Colisiones, Posición ${globalPosition + 1}`;
+    } else if (insertedBlockIndex >= 0 && globalPosition === -1) {
+      // Insertado en área con bloques de colisiones
+      successMessage = `Clave "${formattedKey}" insertada en Área de Colisiones, Bloque ${insertedBlockIndex + 1}, Posición ${insertedPositionInBlock + 1}`;
+    } else if (insertedBlockIndex >= 0 && globalPosition === -2) {
+      // Insertado en bloque de colisiones (debajo del bloque)
+      successMessage = `Clave "${formattedKey}" insertada en Bloque de Colisiones del Bloque ${insertedBlockIndex + 1}, Posición ${insertedPositionInBlock + 1}`;
+    } else if (insertedBlockIndex >= 0 && globalPosition === -3) {
+      // Insertado en cadena de colisiones (encadenamiento)
+      successMessage = `Clave "${formattedKey}" insertada en Cadena de Colisiones del Bloque ${insertedBlockIndex + 1}, Posición ${insertedPositionInBlock + 1}`;
+    } else {
+      // Insertado normalmente
+      successMessage = `Clave "${formattedKey}" insertada en Bloque ${insertedBlockIndex + 1}, Posición ${insertedPositionInBlock + 1} (Posición global: ${globalPosition + 1})`;
+    }
+    
+    showMessage(successMessage, 'success');
     
     setInsertKey('');
     markAsChanged();
@@ -1400,6 +1615,639 @@ function BloquesSearchSection({ onNavigate }) {
     );
   };
 
+  // Función para renderizar el área de colisiones (tabla simple)
+  const renderCollisionArea = () => {
+    if (!collisionArea || collisionArea.length === 0) {
+      return null;
+    }
+
+    // Verificar si hay algún dato
+    const hasData = collisionArea.some(item => item !== null);
+    if (!hasData) {
+      return null;
+    }
+
+    // Determinar qué posiciones mostrar (similar a la estructura de memoria)
+    const positionsToShow = new Set();
+    positionsToShow.add(0); // Primera posición
+    if (collisionArea.length > 1) {
+      positionsToShow.add(collisionArea.length - 1); // Última posición
+    }
+    
+    // Agregar posiciones que tienen datos
+    collisionArea.forEach((value, index) => {
+      if (value !== null) {
+        positionsToShow.add(index);
+      }
+    });
+    
+    const sortedPositions = Array.from(positionsToShow).sort((a, b) => a - b);
+
+    return (
+      <div className="structure-table" style={{
+        border: '2px solid #7f8c8d',
+        borderRadius: '8px',
+        overflow: 'hidden',
+        minWidth: '200px'
+      }}>
+        <div className="table-header" style={{
+          background: '#c0392b',
+          borderBottom: '2px solid #7f8c8d'
+        }}>
+          <span className="header-memory" style={{ color: 'white' }}>Área de colisiones</span>
+        </div>
+        
+        <div className="table-body">
+          {sortedPositions.map((index, arrayIndex) => {
+            const value = collisionArea[index];
+            const nextPos = sortedPositions[arrayIndex + 1];
+            const hasGap = nextPos !== undefined && (nextPos - index) > 1;
+            
+            return (
+              <React.Fragment key={index}>
+                <div className="table-row">
+                  <span className="row-number">{index + 1}</span>
+                  <span className={`cell-memory ${!value ? 'empty' : ''}`}>
+                    {value || '—'}
+                  </span>
+                </div>
+                
+                {hasGap && (
+                  <div className="table-row ellipsis-row">
+                    <span className="row-number">⋮</span>
+                    <span className="cell-memory">⋮</span>
+                  </div>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  // Función para renderizar un bloque de colisiones
+  const renderCollisionBlock = (blockIndex) => {
+    if (!collisionBlocks[blockIndex]) return null;
+
+    const block = collisionBlocks[blockIndex];
+    
+    // Determinar qué posiciones mostrar (similar a renderBlock)
+    const positionsToShow = new Set();
+    positionsToShow.add(0); // Primera posición del bloque
+    if (block.length > 1) {
+      positionsToShow.add(block.length - 1); // Última posición del bloque
+    }
+    
+    // Agregar posiciones que tienen datos
+    block.forEach((value, posInBlock) => {
+      if (value !== null) {
+        positionsToShow.add(posInBlock);
+      }
+    });
+    
+    const sortedPositions = Array.from(positionsToShow).sort((a, b) => a - b);
+
+    return (
+      <div className="block-table" style={{ 
+        marginBottom: '20px',
+        border: '2px solid #7f8c8d',
+        borderRadius: '8px',
+        overflow: 'hidden'
+      }}>
+        <div className="table-header" style={{
+          background: '#c0392b',
+          borderBottom: '2px solid #7f8c8d'
+        }}>
+          <span className="header-memory" style={{ color: 'white' }}>B.Colisiones {blockIndex + 1}</span>
+        </div>
+        
+        <div className="table-body">
+          {sortedPositions.map((posInBlock, arrayIndex) => {
+            const value = block[posInBlock];
+            const globalPos = (blockIndex * currentStructureConfig.recordsPerBlock) + posInBlock;
+            const nextPos = sortedPositions[arrayIndex + 1];
+            const hasGap = nextPos !== undefined && (nextPos - posInBlock) > 1;
+            
+            return (
+              <React.Fragment key={posInBlock}>
+                <div className="table-row">
+                  <span className="row-number">{globalPos + 1}</span>
+                  <span className={`cell-memory ${!value ? 'empty' : ''}`}>
+                    {value || '—'}
+                  </span>
+                </div>
+                
+                {hasGap && (
+                  <div className="table-row ellipsis-row">
+                    <span className="row-number">⋮</span>
+                    <span className="cell-memory">⋮</span>
+                  </div>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  // Función para renderizar área con bloques de colisiones
+  const renderCollisionBlocksArea = () => {
+    if (!collisionBlocks || collisionBlocks.length === 0) {
+      return null;
+    }
+
+    // Verificar si hay algún dato
+    const hasAnyData = collisionBlocks.some(block => block.some(value => value !== null));
+    if (!hasAnyData) {
+      return null;
+    }
+
+    // Determinar qué bloques mostrar (similar a renderStructureTable)
+    const blocksToShow = new Set();
+    blocksToShow.add(0); // Primer bloque
+    if (collisionBlocks.length > 1) {
+      blocksToShow.add(collisionBlocks.length - 1); // Último bloque
+    }
+    
+    // Agregar bloques que tienen datos
+    collisionBlocks.forEach((block, index) => {
+      const hasData = block.some(value => value !== null);
+      if (hasData) {
+        blocksToShow.add(index);
+      }
+    });
+    
+    const sortedBlocks = Array.from(blocksToShow).sort((a, b) => a - b);
+
+    return (
+      <div className="structure-table" style={{
+        border: '2px solid #7f8c8d',
+        borderRadius: '8px',
+        overflow: 'hidden',
+        minWidth: '200px'
+      }}>
+        <div className="table-header" style={{
+          background: '#c0392b',
+          borderBottom: '2px solid #7f8c8d'
+        }}>
+          <span className="header-memory" style={{ color: 'white' }}>Área de colisiones</span>
+        </div>
+        
+        <div className="blocks-container" style={{ padding: '10px' }}>
+          {sortedBlocks.map((blockIndex, arrayIndex) => {
+            const nextBlockIndex = sortedBlocks[arrayIndex + 1];
+            const hasGap = nextBlockIndex !== undefined && (nextBlockIndex - blockIndex) > 1;
+            
+            return (
+              <React.Fragment key={blockIndex}>
+                {renderCollisionBlock(blockIndex)}
+                
+                {hasGap && (
+                  <div style={{ 
+                    textAlign: 'center', 
+                    padding: '10px', 
+                    color: '#666',
+                    fontSize: '20px',
+                    fontWeight: 'bold'
+                  }}>
+                    ⋮
+                  </div>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  // Función para renderizar un bloque de colisiones pequeño (debajo del bloque principal)
+  const renderSmallCollisionBlock = (blockIndex) => {
+    if (!collisionBlocks[blockIndex]) return null;
+
+    const block = collisionBlocks[blockIndex];
+    
+    // Verificar si tiene datos
+    const hasData = block.some(value => value !== null);
+    if (!hasData) return null;
+    
+    // Determinar qué posiciones mostrar
+    const positionsToShow = new Set();
+    positionsToShow.add(0); // Primera posición del bloque
+    if (block.length > 1) {
+      positionsToShow.add(block.length - 1); // Última posición del bloque
+    }
+    
+    // Agregar posiciones que tienen datos
+    block.forEach((value, posInBlock) => {
+      if (value !== null) {
+        positionsToShow.add(posInBlock);
+      }
+    });
+    
+    const sortedPositions = Array.from(positionsToShow).sort((a, b) => a - b);
+
+    return (
+      <div className="block-table" style={{ 
+        marginTop: '10px',
+        marginBottom: '20px',
+        border: '2px solid #7f8c8d',
+        borderRadius: '8px',
+        overflow: 'hidden'
+      }}>
+        <div className="table-header" style={{
+          background: '#c0392b',
+          borderBottom: '2px solid #7f8c8d'
+        }}>
+          <span className="header-memory" style={{ color: 'white' }}>B.Colisiones {blockIndex + 1}</span>
+        </div>
+        
+        <div className="table-body">
+          {sortedPositions.map((posInBlock, arrayIndex) => {
+            const value = block[posInBlock];
+            const globalPos = (blockIndex * currentStructureConfig.recordsPerBlock) + posInBlock;
+            const nextPos = sortedPositions[arrayIndex + 1];
+            const hasGap = nextPos !== undefined && (nextPos - posInBlock) > 1;
+            
+            return (
+              <React.Fragment key={posInBlock}>
+                <div className="table-row">
+                  <span className="row-number">{globalPos + 1}</span>
+                  <span className={`cell-memory ${!value ? 'empty' : ''}`}>
+                    {value || '—'}
+                  </span>
+                </div>
+                
+                {hasGap && (
+                  <div className="table-row ellipsis-row">
+                    <span className="row-number">⋮</span>
+                    <span className="cell-memory">⋮</span>
+                  </div>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  // Función para renderizar bloque con su bloque de colisiones debajo
+  const renderBlockWithCollisions = (blockIndex) => {
+    return (
+      <div key={blockIndex}>
+        {renderBlock(blockIndex)}
+        {renderSmallCollisionBlock(blockIndex)}
+      </div>
+    );
+  };
+
+  // Función para renderizar estructura con bloques de colisión integrados
+  const renderStructureWithBlockCollisions = () => {
+    if (!isStructureCreated || blocks.length === 0) {
+      return null;
+    }
+
+    // Determinar qué bloques mostrar
+    const blocksToShow = new Set();
+    blocksToShow.add(0); // Primer bloque
+    if (blocks.length > 1) {
+      blocksToShow.add(blocks.length - 1); // Último bloque
+    }
+    
+    // Agregar bloques que tienen datos
+    blocks.forEach((block, index) => {
+      const hasData = block.some(value => value !== null);
+      if (hasData) {
+        blocksToShow.add(index);
+      }
+    });
+    
+    // Agregar bloques que tienen colisiones
+    if (collisionBlocks && collisionBlocks.length > 0) {
+      collisionBlocks.forEach((block, index) => {
+        const hasData = block.some(value => value !== null);
+        if (hasData) {
+          blocksToShow.add(index);
+        }
+      });
+    }
+    
+    // Agregar bloques que están siendo resaltados por búsqueda
+    const searchHighlightedPositions = searchHighlights.mainMemory || [];
+    searchHighlightedPositions.forEach(globalPos => {
+      const blockIndex = Math.floor(globalPos / currentStructureConfig.recordsPerBlock);
+      if (blockIndex < blocks.length) {
+        blocksToShow.add(blockIndex);
+      }
+    });
+    
+    const sortedBlocks = Array.from(blocksToShow).sort((a, b) => a - b);
+    
+    return (
+      <div className="structure-table" style={{
+        border: '2px solid #7f8c8d',
+        borderRadius: '8px',
+        overflow: 'hidden'
+      }}>
+        <div className="table-header">
+          <span className="header-memory">Memoria</span>
+        </div>
+        
+        <div className="blocks-container" style={{ padding: '10px' }}>
+          {sortedBlocks.map((blockIndex, arrayIndex) => {
+            const nextBlockIndex = sortedBlocks[arrayIndex + 1];
+            const hasGap = nextBlockIndex !== undefined && (nextBlockIndex - blockIndex) > 1;
+            
+            return (
+              <React.Fragment key={blockIndex}>
+                {renderBlockWithCollisions(blockIndex)}
+                
+                {hasGap && (
+                  <div style={{ 
+                    textAlign: 'center', 
+                    padding: '10px', 
+                    color: '#666',
+                    fontSize: '20px',
+                    fontWeight: 'bold'
+                  }}>
+                    ⋮
+                  </div>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  // Función para renderizar un bloque de colisión en cadena
+  const renderChainCollisionBlock = (blockIndex, chainIndex, chainBlockIndex, chain) => {
+    const chainBlock = chain.blocks[chainBlockIndex];
+    const posInBlock = chain.position;
+    
+    // Determinar qué posiciones mostrar
+    const positionsToShow = new Set();
+    positionsToShow.add(0); // Primera posición del bloque
+    if (chainBlock.length > 1) {
+      positionsToShow.add(chainBlock.length - 1); // Última posición del bloque
+    }
+    
+    // Agregar la posición específica que contiene datos
+    positionsToShow.add(posInBlock);
+    
+    const sortedPositions = Array.from(positionsToShow).sort((a, b) => a - b);
+
+    return (
+      <div key={`chain-${blockIndex}-${chainIndex}-${chainBlockIndex}`} className="block-table" style={{ 
+        marginBottom: '20px',
+        border: '2px solid #7f8c8d',
+        borderRadius: '8px',
+        overflow: 'hidden',
+        position: 'relative',
+        minWidth: '250px'
+      }}>
+        <div className="table-header" style={{
+          background: '#c0392b',
+          borderBottom: '2px solid #7f8c8d',
+          position: 'relative'
+        }}>
+          <span className="header-memory" style={{ color: 'white' }}>
+            B.Col. {blockIndex + 1}-{chainBlockIndex + 1}
+          </span>
+          {/* Flecha saliente si hay más bloques en la cadena */}
+          {chainBlockIndex < chain.blocks.length - 1 && (
+            <span style={{ 
+              position: 'absolute', 
+              right: '10px', 
+              color: 'white',
+              fontSize: '20px'
+            }}>
+              →
+            </span>
+          )}
+        </div>
+        
+        <div className="table-body">
+          {sortedPositions.map((pos, arrayIndex) => {
+            const value = chainBlock[pos];
+            const globalPos = (blockIndex * currentStructureConfig.recordsPerBlock) + pos;
+            const nextPos = sortedPositions[arrayIndex + 1];
+            const hasGap = nextPos !== undefined && (nextPos - pos) > 1;
+            
+            return (
+              <React.Fragment key={pos}>
+                <div className="table-row">
+                  <span className="row-number">{globalPos + 1}</span>
+                  <span className={`cell-memory ${!value ? 'empty' : ''}`}>
+                    {value || '—'}
+                  </span>
+                </div>
+                
+                {hasGap && (
+                  <div className="table-row ellipsis-row">
+                    <span className="row-number">⋮</span>
+                    <span className="cell-memory">⋮</span>
+                  </div>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  // Función para renderizar todas las cadenas de un bloque
+  const renderBlockChains = (blockIndex) => {
+    if (!collisionChains[blockIndex] || collisionChains[blockIndex].length === 0) {
+      return null;
+    }
+
+    return (
+      <div style={{ 
+        marginTop: '10px',
+        marginBottom: '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '30px'
+      }}>
+        {collisionChains[blockIndex].map((chain, chainIndex) => (
+          <div key={`chain-${blockIndex}-${chainIndex}`} style={{ 
+            display: 'flex', 
+            flexDirection: 'row',
+            alignItems: 'flex-start',
+            gap: '15px'
+          }}>
+            {/* Cadena de bloques de colisión horizontalmente */}
+            {chain.blocks.map((_, chainBlockIndex) => (
+              <React.Fragment key={chainBlockIndex}>
+                {renderChainCollisionBlock(blockIndex, chainIndex, chainBlockIndex, chain)}
+                {chainBlockIndex < chain.blocks.length - 1 && (
+                  <div style={{ 
+                    display: 'flex',
+                    alignItems: 'center',
+                    color: '#c0392b',
+                    fontSize: '24px',
+                    fontWeight: 'bold',
+                    paddingTop: '40px'
+                  }}>
+                    →
+                  </div>
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  // Función para renderizar bloque con indicador de cadena (sin las cadenas)
+  const renderBlockWithChains = (blockIndex) => {
+    return (
+      <div key={`block-with-chains-${blockIndex}`}>
+        <div style={{ position: 'relative' }}>
+          {renderBlock(blockIndex)}
+          {/* Flecha saliente si hay cadenas */}
+          {collisionChains[blockIndex] && collisionChains[blockIndex].length > 0 && (
+            <div style={{ 
+              position: 'absolute',
+              right: '-30px',
+              top: '20px',
+              color: '#c0392b',
+              fontSize: '24px',
+              fontWeight: 'bold'
+            }}>
+              →
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Función para renderizar estructura con encadenamiento
+  const renderStructureWithChaining = () => {
+    if (!isStructureCreated || blocks.length === 0) {
+      return null;
+    }
+
+    // Determinar qué bloques mostrar
+    const blocksToShow = new Set();
+    blocksToShow.add(0); // Primer bloque
+    if (blocks.length > 1) {
+      blocksToShow.add(blocks.length - 1); // Último bloque
+    }
+    
+    // Agregar bloques que tienen datos
+    blocks.forEach((block, index) => {
+      const hasData = block.some(value => value !== null);
+      if (hasData) {
+        blocksToShow.add(index);
+      }
+    });
+    
+    // Agregar bloques que tienen cadenas
+    Object.keys(collisionChains).forEach(key => {
+      const blockIndex = parseInt(key);
+      if (collisionChains[blockIndex].length > 0) {
+        blocksToShow.add(blockIndex);
+      }
+    });
+    
+    // Agregar bloques que están siendo resaltados por búsqueda
+    const searchHighlightedPositions = searchHighlights.mainMemory || [];
+    searchHighlightedPositions.forEach(globalPos => {
+      const blockIndex = Math.floor(globalPos / currentStructureConfig.recordsPerBlock);
+      if (blockIndex < blocks.length) {
+        blocksToShow.add(blockIndex);
+      }
+    });
+    
+    const sortedBlocks = Array.from(blocksToShow).sort((a, b) => a - b);
+    
+    // Verificar si hay cadenas de colisión
+    const hasChainsToShow = Object.keys(collisionChains).some(key => {
+      const blockIndex = parseInt(key);
+      return collisionChains[blockIndex] && collisionChains[blockIndex].length > 0;
+    });
+    
+    return (
+      <div style={{ display: 'flex', flexDirection: 'row', gap: '30px', alignItems: 'flex-start' }}>
+        {/* Tabla de memoria principal */}
+        <div className="structure-table" style={{
+          border: '2px solid #7f8c8d',
+          borderRadius: '8px',
+          overflow: 'hidden',
+          flex: '0 0 auto'
+        }}>
+          <div className="table-header">
+            <span className="header-memory">Memoria</span>
+          </div>
+          
+          <div className="blocks-container" style={{ padding: '10px' }}>
+            {sortedBlocks.map((blockIndex, arrayIndex) => {
+              const nextBlockIndex = sortedBlocks[arrayIndex + 1];
+              const hasGap = nextBlockIndex !== undefined && (nextBlockIndex - blockIndex) > 1;
+              
+              return (
+                <React.Fragment key={blockIndex}>
+                  {renderBlockWithChains(blockIndex)}
+                  
+                  {hasGap && (
+                    <div style={{ 
+                      textAlign: 'center', 
+                      padding: '10px', 
+                      color: '#666',
+                      fontSize: '20px',
+                      fontWeight: 'bold'
+                    }}>
+                      ⋮
+                    </div>
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </div>
+        
+        {/* Área de cadenas de colisión a la derecha de la tabla */}
+        {hasChainsToShow && (
+          <div style={{ 
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px',
+            flex: '1 1 auto'
+          }}>
+            {sortedBlocks.map(blockIndex => {
+              if (!collisionChains[blockIndex] || collisionChains[blockIndex].length === 0) {
+                return null;
+              }
+              
+              return (
+                <div key={`chains-for-block-${blockIndex}`}>
+                  <div style={{ 
+                    marginBottom: '10px',
+                    color: '#666',
+                    fontSize: '14px',
+                    fontWeight: 'bold'
+                  }}>
+                    Cadenas de colisión para Bloque {blockIndex + 1}:
+                  </div>
+                  {renderBlockChains(blockIndex)}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // Renderizar tabla de arreglo anidado con highlights de búsqueda
   return (
     <div className="sequential-search-section">
@@ -1469,8 +2317,9 @@ function BloquesSearchSection({ onNavigate }) {
               disabled={hashFunction === 'secuencial' || hashFunction === 'binario'}
             >
               <option value="secuencial">Secuencial</option>
-              <option value="area-colisiones">Área colisiones</option>
-              <option value="area-bloques">Área bloques</option>
+              <option value="area-colisiones">Área de colisiones</option>
+              <option value="area-con-bloques">Área con bloques</option>
+              <option value="bloques-colision">Bloques de Colisión</option>
               <option value="encadenamiento">Encadenamiento</option>
             </select>
             <small>
@@ -1788,8 +2637,20 @@ function BloquesSearchSection({ onNavigate }) {
                   }}
                 >
                   <div className="main-memory-container">
-                    {renderStructureTable()}
+                    {/* Renderizar según el método de colisión */}
+                    {currentStructureConfig.collisionMethod === 'bloques-colision' 
+                      ? renderStructureWithBlockCollisions() 
+                      : currentStructureConfig.collisionMethod === 'encadenamiento'
+                      ? renderStructureWithChaining()
+                      : renderStructureTable()
+                    }
                   </div>
+                  
+                  {/* Área de colisiones (si existe) */}
+                  {currentStructureConfig.collisionMethod === 'area-colisiones' && renderCollisionArea()}
+                  
+                  {/* Área con bloques de colisiones (si existe) */}
+                  {currentStructureConfig.collisionMethod === 'area-con-bloques' && renderCollisionBlocksArea()}
                 </div>
               </div>
             </div>
