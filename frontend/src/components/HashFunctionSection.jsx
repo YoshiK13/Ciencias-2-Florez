@@ -1262,7 +1262,11 @@ function HashFunctionSection({ onNavigate }) {
     const sortedPositions = Array.from(positionsToShow).sort((a, b) => a - b);
     
     return (
-      <div className="structure-table">
+      <div className="structure-table" style={{
+        border: '2px solid #7f8c8d',
+        borderRadius: '8px',
+        overflow: 'hidden'
+      }}>
         <div className="table-header">
           <span className="header-memory">Memoria</span>
         </div>
@@ -1353,7 +1357,11 @@ function HashFunctionSection({ onNavigate }) {
     const sortedPositions = Array.from(positionsToShow).sort((a, b) => a - b);
     
     return (
-      <div className="structure-table nested-table">
+      <div className="structure-table nested-table" style={{
+        border: '2px solid #7f8c8d',
+        borderRadius: '8px',
+        overflow: 'hidden'
+      }}>
         <div className="table-header">
           <span className="header-memory">Memoria</span>
         </div>

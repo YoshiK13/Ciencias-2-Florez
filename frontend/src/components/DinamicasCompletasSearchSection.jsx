@@ -579,11 +579,12 @@ function DinamicasCompletasSearchSection({ onNavigate }) {
     }
   };
 
-  const handleRedo = () => {
+  const handleRedo = async () => {
     if (historyIndex >= history.length - 1) {
       showMessage('No hay acciones para rehacer', 'warning');
       return;
     }
+    
     const nextState = history[historyIndex + 1];
     setMemoryMatrix(nextState.matrix);
     setCollisions(nextState.collisions);
@@ -591,7 +592,26 @@ function DinamicasCompletasSearchSection({ onNavigate }) {
     setCurrentBuckets(nextState.buckets);
     setCurrentRecords(nextState.records);
     setHistoryIndex(historyIndex + 1);
-    showMessage('Acción rehecha', 'info');
+    
+    // Verificar si necesita expansión o reducción después de rehacer
+    const occupancy = calculateOccupancy(nextState.matrix, nextState.collisions);
+    const delay = delays[simulationSpeed - 1];
+    
+    if (nextState.type === 'insert' && occupancy >= currentStructureConfig.expansionThreshold) {
+      showMessage(`Acción rehecha. Densidad ${occupancy.toFixed(2)}% ≥ ${currentStructureConfig.expansionThreshold}%. Expandiendo estructura...`, 'warning');
+      setIsSimulating(true);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      await expandStructure(nextState.insertionHistory, delay);
+      setIsSimulating(false);
+    } else if (nextState.type === 'delete' && occupancy <= currentStructureConfig.reductionThreshold && nextState.buckets > currentStructureConfig.initialBuckets) {
+      showMessage(`Acción rehecha. Densidad ${occupancy.toFixed(2)}% ≤ ${currentStructureConfig.reductionThreshold}%. Reduciendo estructura...`, 'warning');
+      setIsSimulating(true);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      await reduceStructure(nextState.insertionHistory, delay);
+      setIsSimulating(false);
+    } else {
+      showMessage('Acción rehecha', 'info');
+    }
   };
 
   // Función para crear el objeto de datos para guardar
