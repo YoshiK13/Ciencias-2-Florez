@@ -1536,6 +1536,17 @@ function HuffmanSearchSection({ onNavigate }) {
         <div className="options-panel">
           <h3>Opciones y Manejo</h3>
           
+          {/* Nuevo Árbol */}
+          <div className="control-group">
+            <button 
+              onClick={handleNewTree}
+              className="new-tree-btn"
+              title="Limpiar árbol actual y comenzar uno nuevo"
+            >
+              Nuevo Árbol
+            </button>
+          </div>
+
           {/* Velocidad de Simulación */}
           <div className="control-group">
             <label>Velocidad de Simulación</label>
@@ -1551,17 +1562,6 @@ function HuffmanSearchSection({ onNavigate }) {
               />
               <span className="speed-label">{speedLabels[simulationSpeed - 1]}</span>
             </div>
-          </div>
-
-          {/* Nuevo Árbol */}
-          <div className="control-group">
-            <button 
-              onClick={handleNewTree}
-              className="new-tree-btn"
-              title="Limpiar árbol actual y comenzar uno nuevo"
-            >
-              Nuevo Árbol
-            </button>
           </div>
 
           {/* Codificar Mensaje */}
