@@ -20,10 +20,6 @@ import DinamicasSearchSection from './components/DinamicasSearchSection';
 import DinamicasCompletasSearchSection from './components/DinamicasCompletasSearchSection';
 import DinamicasParcialesSearchSection from './components/DinamicasParcialesSearchSection';
 import IndicesSearchSection from './components/IndicesSearchSection';
-import IndicesPrimariosSearchSection from './components/IndicesPrimariosSearchSection';
-import IndicesSecundariosSearchSection from './components/IndicesSecundariosSearchSection';
-import IndicesMultinivelSearchSection from './components/IndicesMultinivelSearchSection';
-import IndicesConDatosSearchSection from './components/IndicesConDatosSearchSection';
 import GrafosSection from './components/GrafosSection';
 import InformationSection from './components/InformationSection';
 import { useResponsive } from './hooks/useResponsive';
@@ -119,6 +115,13 @@ function App() {
     // Verificar si hay cambios no guardados en Búsqueda por Bloques
     else if (currentSection === 'bloques' && window.bloquesSearchCheckUnsavedChanges) {
       window.bloquesSearchCheckUnsavedChanges(section, () => {
+        setCurrentSection(section);
+        console.log('Navegando a:', section);
+      });
+    }
+    // Verificar si hay cambios no guardados en Índices
+    else if (currentSection === 'indices' && window.indicesCheckUnsavedChanges) {
+      window.indicesCheckUnsavedChanges(section, () => {
         setCurrentSection(section);
         console.log('Navegando a:', section);
       });
@@ -261,30 +264,6 @@ function App() {
       case 'indices':
         return (
           <IndicesSearchSection 
-            onNavigate={handleNavigate}
-          />
-        );
-      case 'indices-primarios':
-        return (
-          <IndicesPrimariosSearchSection 
-            onNavigate={handleNavigate}
-          />
-        );
-      case 'indices-secundarios':
-        return (
-          <IndicesSecundariosSearchSection 
-            onNavigate={handleNavigate}
-          />
-        );
-      case 'indices-multinivel':
-        return (
-          <IndicesMultinivelSearchSection 
-            onNavigate={handleNavigate}
-          />
-        );
-      case 'indices-con-datos':
-        return (
-          <IndicesConDatosSearchSection 
             onNavigate={handleNavigate}
           />
         );

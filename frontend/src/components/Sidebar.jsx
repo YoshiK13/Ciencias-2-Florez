@@ -100,13 +100,7 @@ const MENU_CONFIG = [
         id: 'indices',
         label: 'Índices',
         icon: 'list',
-        path: 'indices',
-        children: [
-          { id: 'indices-primarios', label: 'Primarios', icon: 'hash', path: 'indices-primarios' },
-          { id: 'indices-secundarios', label: 'Secundarios', icon: 'calculator', path: 'indices-secundarios' },
-          { id: 'indices-multinivel', label: 'Multinivel', icon: 'layers', path: 'indices-multinivel' },
-          { id: 'indices-con-datos', label: 'Con Datos', icon: 'binary', path: 'indices-con-datos' }
-        ]
+        path: 'indices'
       }
     ]
   },
@@ -182,11 +176,34 @@ function Sidebar({
     
     // Si tiene path, navegar
     if (item.path) {
-      onNavigate(item.path);
-      
-      // Cerrar sidebar en móvil
-      if (isMobile) {
-        setTimeout(() => onClose(), 300);
+      // Verificar cambios no guardados antes de navegar
+      if (currentSection === 'indices' && window.indicesCheckUnsavedChanges) {
+        window.indicesCheckUnsavedChanges(item.path, () => {
+          onNavigate(item.path);
+          if (isMobile) {
+            setTimeout(() => onClose(), 300);
+          }
+        });
+      } else if (currentSection === 'dinamicas-totales' && window.dinamicasCompletasCheckUnsavedChanges) {
+        window.dinamicasCompletasCheckUnsavedChanges(item.path, () => {
+          onNavigate(item.path);
+          if (isMobile) {
+            setTimeout(() => onClose(), 300);
+          }
+        });
+      } else if (currentSection === 'dinamicas-parciales' && window.dinamicasParcialesCheckUnsavedChanges) {
+        window.dinamicasParcialesCheckUnsavedChanges(item.path, () => {
+          onNavigate(item.path);
+          if (isMobile) {
+            setTimeout(() => onClose(), 300);
+          }
+        });
+      } else {
+        // Navegar directamente si no hay verificación
+        onNavigate(item.path);
+        if (isMobile) {
+          setTimeout(() => onClose(), 300);
+        }
       }
     }
   };
