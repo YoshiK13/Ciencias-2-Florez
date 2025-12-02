@@ -954,8 +954,25 @@ function DinamicasCompletasSearchSection({ onNavigate }) {
               min="2"
               step="2"
               value={buckets}
-              onChange={(e) => setBuckets(Math.max(2, parseInt(e.target.value) || 2))}
+              onChange={(e) => setBuckets(e.target.value)}
+              onBlur={(e) => {
+                const value = e.target.value;
+                if (value === '' || value === '-' || isNaN(parseInt(value))) {
+                  setBuckets(2);
+                } else {
+                  let numValue = parseInt(value);
+                  numValue = Math.max(2, numValue);
+                  // Ajustar a número par más cercano
+                  if (numValue % 2 !== 0) {
+                    numValue = numValue + 1;
+                  }
+                  setBuckets(numValue);
+                }
+              }}
               className="config-input"
+              style={{
+                borderColor: buckets !== '' && buckets !== '-' && !isNaN(parseInt(buckets)) && (parseInt(buckets) < 2 || parseInt(buckets) % 2 !== 0) ? '#ef4444' : undefined
+              }}
             />
             <small>Mínimo: 2 (debe ser par)</small>
           </div>
@@ -967,8 +984,20 @@ function DinamicasCompletasSearchSection({ onNavigate }) {
               type="number"
               min="2"
               value={records}
-              onChange={(e) => setRecords(Math.max(2, parseInt(e.target.value) || 2))}
+              onChange={(e) => setRecords(e.target.value)}
+              onBlur={(e) => {
+                const value = e.target.value;
+                if (value === '' || value === '-' || isNaN(parseInt(value))) {
+                  setRecords(2);
+                } else {
+                  const numValue = parseInt(value);
+                  setRecords(Math.max(2, numValue));
+                }
+              }}
               className="config-input"
+              style={{
+                borderColor: records !== '' && records !== '-' && !isNaN(parseInt(records)) && parseInt(records) < 2 ? '#ef4444' : undefined
+              }}
             />
             <small>Mínimo: 2</small>
           </div>
@@ -981,8 +1010,20 @@ function DinamicasCompletasSearchSection({ onNavigate }) {
               min="2"
               max="8"
               value={keySize}
-              onChange={(e) => setKeySize(Math.min(8, Math.max(2, parseInt(e.target.value) || 2)))}
+              onChange={(e) => setKeySize(e.target.value)}
+              onBlur={(e) => {
+                const value = e.target.value;
+                if (value === '' || value === '-' || isNaN(parseInt(value))) {
+                  setKeySize(2);
+                } else {
+                  const numValue = parseInt(value);
+                  setKeySize(Math.min(8, Math.max(2, numValue)));
+                }
+              }}
               className="config-input"
+              style={{
+                borderColor: keySize !== '' && keySize !== '-' && !isNaN(parseInt(keySize)) && (parseInt(keySize) < 2 || parseInt(keySize) > 8) ? '#ef4444' : undefined
+              }}
             />
             <small>Dígitos de la clave (2-8)</small>
           </div>

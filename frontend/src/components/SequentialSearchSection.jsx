@@ -698,7 +698,18 @@ function SequentialSearchSection({ onNavigate }) {
               type="number"
               min="10"
               value={structureSize}
-              onChange={(e) => setStructureSize(Math.max(10, parseInt(e.target.value) || 10))}
+              onChange={(e) => setStructureSize(e.target.value)}
+              onBlur={(e) => {
+                const value = e.target.value;
+                if (value === '' || value === '-' || isNaN(parseInt(value))) {
+                  setStructureSize(10);
+                } else {
+                  setStructureSize(Math.max(10, parseInt(value)));
+                }
+              }}
+              style={{
+                borderColor: structureSize !== '' && structureSize !== '-' && !isNaN(parseInt(structureSize)) && parseInt(structureSize) < 10 ? '#ef4444' : undefined
+              }}
               className="config-input"
             />
             <small>Mínimo: 10</small>
@@ -711,7 +722,18 @@ function SequentialSearchSection({ onNavigate }) {
               type="number"
               min="2"
               value={keySize}
-              onChange={(e) => setKeySize(Math.max(2, parseInt(e.target.value) || 2))}
+              onChange={(e) => setKeySize(e.target.value)}
+              onBlur={(e) => {
+                const value = e.target.value;
+                if (value === '' || value === '-' || isNaN(parseInt(value))) {
+                  setKeySize(2);
+                } else {
+                  setKeySize(Math.max(2, parseInt(value)));
+                }
+              }}
+              style={{
+                borderColor: keySize !== '' && keySize !== '-' && !isNaN(parseInt(keySize)) && parseInt(keySize) < 2 ? '#ef4444' : undefined
+              }}
               className="config-input"
             />
             <small>Mínimo: 2</small>

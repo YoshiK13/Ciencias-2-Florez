@@ -717,8 +717,20 @@ function BinarySearchSection({ onNavigate }) {
               type="number"
               min="10"
               value={structureSize}
-              onChange={(e) => setStructureSize(Math.max(10, parseInt(e.target.value) || 10))}
+              onChange={(e) => setStructureSize(e.target.value)}
+              onBlur={(e) => {
+                const value = e.target.value;
+                if (value === '' || value === '-' || isNaN(parseInt(value))) {
+                  setStructureSize(10);
+                } else {
+                  const numValue = parseInt(value);
+                  setStructureSize(Math.max(10, numValue));
+                }
+              }}
               className="config-input"
+              style={{
+                borderColor: structureSize !== '' && structureSize !== '-' && !isNaN(parseInt(structureSize)) && parseInt(structureSize) < 10 ? '#ef4444' : undefined
+              }}
             />
             <small>Mínimo: 10</small>
           </div>
@@ -730,8 +742,20 @@ function BinarySearchSection({ onNavigate }) {
               type="number"
               min="2"
               value={keySize}
-              onChange={(e) => setKeySize(Math.max(2, parseInt(e.target.value) || 2))}
+              onChange={(e) => setKeySize(e.target.value)}
+              onBlur={(e) => {
+                const value = e.target.value;
+                if (value === '' || value === '-' || isNaN(parseInt(value))) {
+                  setKeySize(2);
+                } else {
+                  const numValue = parseInt(value);
+                  setKeySize(Math.max(2, numValue));
+                }
+              }}
               className="config-input"
+              style={{
+                borderColor: keySize !== '' && keySize !== '-' && !isNaN(parseInt(keySize)) && parseInt(keySize) < 2 ? '#ef4444' : undefined
+              }}
             />
             <small>Mínimo: 2</small>
           </div>
