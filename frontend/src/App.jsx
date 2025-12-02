@@ -21,6 +21,14 @@ import DinamicasCompletasSearchSection from './components/DinamicasCompletasSear
 import DinamicasParcialesSearchSection from './components/DinamicasParcialesSearchSection';
 import IndicesSearchSection from './components/IndicesSearchSection';
 import GrafosSection from './components/GrafosSection';
+import OperacionesGrafosSection from './components/OperacionesGrafosSection';
+import ArbolesGrafosSection from './components/ArbolesGrafosSection';
+import MatricesGrafosSection from './components/MatricesGrafosSection';
+import SobreGrafoSection from './components/SobreGrafoSection';
+import EntreGrafosSection from './components/EntreGrafosSection';
+import ArbolGeneradorSection from './components/ArbolGeneradorSection';
+import OperacionesArbolesSection from './components/OperacionesArbolesSection';
+import FloydSection from './components/FloydSection';
 import InformationSection from './components/InformationSection';
 import { useResponsive } from './hooks/useResponsive';
 import { useSearch } from './hooks/useSearch';
@@ -268,7 +276,59 @@ function App() {
           />
         );
       case 'grafos':
-        return <GrafosSection />;
+        return (
+          <GrafosSection 
+            onNavigate={handleNavigate}
+          />
+        );
+      case 'operaciones-grafos':
+        return (
+          <OperacionesGrafosSection 
+            onNavigate={handleNavigate}
+          />
+        );
+      case 'arboles-grafos':
+        return (
+          <ArbolesGrafosSection 
+            onNavigate={handleNavigate}
+          />
+        );
+      case 'matrices-grafos':
+        return (
+          <MatricesGrafosSection 
+            onNavigate={handleNavigate}
+          />
+        );
+      case 'sobre-grafo':
+        return (
+          <SobreGrafoSection 
+            onNavigate={handleNavigate}
+          />
+        );
+      case 'entre-grafos':
+        return (
+          <EntreGrafosSection 
+            onNavigate={handleNavigate}
+          />
+        );
+      case 'arbol-generador':
+        return (
+          <ArbolGeneradorSection 
+            onNavigate={handleNavigate}
+          />
+        );
+      case 'operaciones-arboles':
+        return (
+          <OperacionesArbolesSection 
+            onNavigate={handleNavigate}
+          />
+        );
+      case 'floyd':
+        return (
+          <FloydSection 
+            onNavigate={handleNavigate}
+          />
+        );
       case 'information':
         return <InformationSection onNavigate={handleNavigate} />;
       default:

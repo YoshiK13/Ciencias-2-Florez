@@ -108,7 +108,36 @@ const MENU_CONFIG = [
     id: 'grafos',
     label: 'Grafos',
     icon: 'network',
-    path: 'grafos'
+    path: 'grafos',
+    children: [
+      {
+        id: 'operaciones-grafos',
+        label: 'Operaciones de Grafos',
+        icon: 'network',
+        path: 'operaciones-grafos',
+        children: [
+          { id: 'sobre-grafo', label: 'Sobre un Grafo', icon: 'arrow-right', path: 'sobre-grafo' },
+          { id: 'entre-grafos', label: 'Entre Múltiples Grafos', icon: 'layers', path: 'entre-grafos' }
+        ]
+      },
+      {
+        id: 'arboles-grafos',
+        label: 'Árboles',
+        icon: 'git-branch',
+        path: 'arboles-grafos',
+        children: [
+          { id: 'arbol-generador', label: 'Árbol Generador', icon: 'git-branch', path: 'arbol-generador' },
+          { id: 'operaciones-arboles', label: 'Operaciones entre Árboles', icon: 'network', path: 'operaciones-arboles' },
+          { id: 'floyd', label: 'Floyd', icon: 'arrow-right', path: 'floyd' }
+        ]
+      },
+      {
+        id: 'matrices-grafos',
+        label: 'Matrices',
+        icon: 'hash',
+        path: 'matrices-grafos'
+      }
+    ]
   },
   {
     id: 'information',

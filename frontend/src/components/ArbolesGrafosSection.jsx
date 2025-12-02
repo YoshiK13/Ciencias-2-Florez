@@ -1,26 +1,37 @@
 import { 
   ArrowLeft,
-  CheckCircle,
-  PieChart,
-  Activity
+  GitBranch,
+  TreeDeciduous,
+  Route,
+  GitCompare
 } from 'lucide-react';
 import '../styles/SearchSection.css';
 
-function DinamicasSearchSection({ onNavigate }) {
-  const dinamicasMethods = [
+function ArbolesGrafosSection({ onNavigate }) {
+  const arbolesMetodos = [
     {
-      id: 'totales',
-      name: 'Dinámicas Totales',
-      complexity: 'O(n)',
-      icon: CheckCircle,
-      path: 'dinamicas-totales'
+      id: 'arbol-generador',
+      name: 'Árbol Generador',
+      description: 'Árbol que conecta todos los vértices de un grafo con el mínimo de aristas.',
+      complexity: 'O(E log V)',
+      icon: TreeDeciduous,
+      path: 'arbol-generador'
     },
     {
-      id: 'parciales',
-      name: 'Dinámicas Parciales',
-      complexity: 'O(log n)',
-      icon: PieChart,
-      path: 'dinamicas-parciales'
+      id: 'operaciones-arboles',
+      name: 'Operaciones entre Árboles',
+      description: 'Operaciones y comparaciones entre diferentes árboles generadores.',
+      complexity: 'Varía según operación',
+      icon: GitCompare,
+      path: 'operaciones-arboles'
+    },
+    {
+      id: 'floyd',
+      name: 'Algoritmo de Floyd',
+      description: 'Encuentra los caminos más cortos entre todos los pares de vértices.',
+      complexity: 'O(V³)',
+      icon: Route,
+      path: 'floyd'
     }
   ];
 
@@ -55,16 +66,16 @@ function DinamicasSearchSection({ onNavigate }) {
     <section className="search-section fade-in">
       <div className="section-container">
         <div className="section-header">
-          <Activity className="section-icon" size={56} />
-          <h1>Búsquedas Dinámicas</h1>
+          <GitBranch className="section-icon" size={56} />
+          <h1>Árboles en Grafos</h1>
           <p className="section-subtitle">
-            Estructuras que se adaptan dinámicamente a cambios en los datos
+            Árboles generadores y algoritmos de caminos en grafos
           </p>
         </div>
 
         <div className="subsection">
           <div className="search-methods-grid">
-            {dinamicasMethods.map(method => renderMethodCard(method))}
+            {arbolesMetodos.map(method => renderMethodCard(method))}
           </div>
         </div>
 
@@ -72,10 +83,10 @@ function DinamicasSearchSection({ onNavigate }) {
         <div className="section-actions">
           <button 
             className="back-btn" 
-            onClick={() => onNavigate('external-search')}
+            onClick={() => onNavigate('grafos')}
           >
             <ArrowLeft size={16} />
-            Volver a Búsquedas Externas
+            Volver a Grafos
           </button>
           <button 
             className="back-btn" 
@@ -90,4 +101,4 @@ function DinamicasSearchSection({ onNavigate }) {
   );
 }
 
-export default DinamicasSearchSection;
+export default ArbolesGrafosSection;

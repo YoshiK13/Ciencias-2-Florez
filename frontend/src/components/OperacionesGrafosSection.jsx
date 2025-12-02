@@ -1,26 +1,28 @@
 import { 
   ArrowLeft,
-  CheckCircle,
-  PieChart,
-  Activity
+  Network,
+  Circle,
+  GitMerge
 } from 'lucide-react';
 import '../styles/SearchSection.css';
 
-function DinamicasSearchSection({ onNavigate }) {
-  const dinamicasMethods = [
+function OperacionesGrafosSection({ onNavigate }) {
+  const operacionesMetodos = [
     {
-      id: 'totales',
-      name: 'Dinámicas Totales',
-      complexity: 'O(n)',
-      icon: CheckCircle,
-      path: 'dinamicas-totales'
+      id: 'sobre-grafo',
+      name: 'Operaciones sobre un Grafo',
+      description: 'Operaciones que se realizan sobre un único grafo: recorridos, búsqueda de caminos, ciclos.',
+      complexity: 'Varía según operación',
+      icon: Circle,
+      path: 'sobre-grafo'
     },
     {
-      id: 'parciales',
-      name: 'Dinámicas Parciales',
-      complexity: 'O(log n)',
-      icon: PieChart,
-      path: 'dinamicas-parciales'
+      id: 'entre-grafos',
+      name: 'Operaciones entre Múltiples Grafos',
+      description: 'Operaciones que involucran múltiples grafos: unión, intersección, isomorfismo.',
+      complexity: 'Varía según operación',
+      icon: GitMerge,
+      path: 'entre-grafos'
     }
   ];
 
@@ -55,16 +57,16 @@ function DinamicasSearchSection({ onNavigate }) {
     <section className="search-section fade-in">
       <div className="section-container">
         <div className="section-header">
-          <Activity className="section-icon" size={56} />
-          <h1>Búsquedas Dinámicas</h1>
+          <Network className="section-icon" size={56} />
+          <h1>Operaciones de Grafos</h1>
           <p className="section-subtitle">
-            Estructuras que se adaptan dinámicamente a cambios en los datos
+            Operaciones fundamentales sobre grafos individuales y múltiples
           </p>
         </div>
 
         <div className="subsection">
           <div className="search-methods-grid">
-            {dinamicasMethods.map(method => renderMethodCard(method))}
+            {operacionesMetodos.map(method => renderMethodCard(method))}
           </div>
         </div>
 
@@ -72,10 +74,10 @@ function DinamicasSearchSection({ onNavigate }) {
         <div className="section-actions">
           <button 
             className="back-btn" 
-            onClick={() => onNavigate('external-search')}
+            onClick={() => onNavigate('grafos')}
           >
             <ArrowLeft size={16} />
-            Volver a Búsquedas Externas
+            Volver a Grafos
           </button>
           <button 
             className="back-btn" 
@@ -90,4 +92,4 @@ function DinamicasSearchSection({ onNavigate }) {
   );
 }
 
-export default DinamicasSearchSection;
+export default OperacionesGrafosSection;
