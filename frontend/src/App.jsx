@@ -133,6 +133,13 @@ function App() {
         setCurrentSection(section);
         console.log('Navegando a:', section);
       });
+    }
+    // Verificar si hay cambios no guardados en Operaciones sobre Grafo
+    else if (currentSection === 'sobre-grafo' && window.sobreGrafoCheckUnsavedChanges) {
+      window.sobreGrafoCheckUnsavedChanges(section, () => {
+        setCurrentSection(section);
+        console.log('Navegando a:', section);
+      });
     } else {
       setCurrentSection(section);
       console.log('Navegando a:', section);
