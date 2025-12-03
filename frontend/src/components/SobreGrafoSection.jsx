@@ -1375,7 +1375,7 @@ function SobreGrafoSection({ onNavigate }) {
             </div>
             <div className="legend-item">
               <svg width="40" height="20">
-                <line x1="5" y1="10" x2="35" y2="10" stroke="#48bb78" strokeWidth="2.5" />
+                <line x1="5" y1="10" x2="35" y2="10" stroke="#1f1f1f" strokeWidth="2.5" />
               </svg>
               <span>Arista</span>
             </div>
@@ -1411,8 +1411,8 @@ function SobreGrafoSection({ onNavigate }) {
             <defs>
               {/* Gradiente para aristas */}
               <linearGradient id="edgeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#48bb78" stopOpacity="1" />
-                <stop offset="100%" stopColor="#38a169" stopOpacity="1" />
+                <stop offset="0%" stopColor="#1f1f1f" stopOpacity="1" />
+                <stop offset="100%" stopColor="#3a3a3a" stopOpacity="1" />
               </linearGradient>
               
               {/* Sombra para nodos */}
@@ -1437,7 +1437,7 @@ function SobreGrafoSection({ onNavigate }) {
                 refY="3"
                 orient="auto"
               >
-                <path d="M0,0 L0,6 L9,3 z" fill="#48bb78" />
+                <path d="M0,0 L0,6 L9,3 z" fill="#1f1f1f" />
               </marker>
             </defs>
 
@@ -1501,7 +1501,7 @@ function SobreGrafoSection({ onNavigate }) {
                           cy={loopCenterY}
                           r={loopRadius}
                           fill="none"
-                          stroke="#48bb78"
+                          stroke="#1f1f1f"
                           strokeWidth="2.5"
                           markerEnd={graphType === 'dirigido' ? "url(#arrowhead)" : ""}
                         />
@@ -1513,7 +1513,7 @@ function SobreGrafoSection({ onNavigate }) {
                             cy={loopCenterY + loopRadius * Math.sin(loopAngle) * 1.3}
                             r="14"
                             fill="white"
-                            stroke="#48bb78"
+                            stroke="#1f1f1f"
                             strokeWidth="2"
                           />
                           <text
@@ -1522,7 +1522,7 @@ function SobreGrafoSection({ onNavigate }) {
                             textAnchor="middle"
                             fontSize="13"
                             fontWeight="700"
-                            fill="#2f855a"
+                            fill="#1a1a1a"
                           >
                             {edge.label}
                           </text>
@@ -1547,23 +1547,14 @@ function SobreGrafoSection({ onNavigate }) {
                   // Lógica de aristas: RECTAS por defecto, curvas SOLO cuando necesario
                   let curveOffset = 0;
                   
-                  // CASO 1: Múltiples aristas entre los mismos nodos
+                  // Solo curvar si hay múltiples aristas entre los mismos nodos
                   if (edgesInGroup.length > 1) {
                     // Distribuir aristas múltiples con curvas
                     const maxCurve = 40; // Curvatura moderada
                     const step = maxCurve / (edgesInGroup.length - 1);
                     curveOffset = -maxCurve / 2 + step * edgeIndexInGroup;
                   }
-                  // CASO 2: Grafos dirigidos con aristas bidireccionales
-                  else if (graphType === 'dirigido') {
-                    const reverseKey = `${edge.to}-${source}`;
-                    if (edgeGroups[reverseKey]) {
-                      // Hay arista en sentido contrario, usar curva ligera
-                      curveOffset = edgeIndexInGroup % 2 === 0 ? 15 : -15;
-                    }
-                  }
-                  // CASO 3 y demás: LÍNEA RECTA (sin verificar colisiones)
-                  // Las líneas rectas se adaptarán naturalmente con el espaciado adecuado
+                  // En todos los demás casos: LÍNEA RECTA
                   
                   // Calcular ángulo de la arista
                   const angle = Math.atan2(targetPos.y - sourcePos.y, targetPos.x - sourcePos.x);
@@ -1617,14 +1608,14 @@ function SobreGrafoSection({ onNavigate }) {
                       <path
                         d={pathD}
                         fill="none"
-                        stroke="#e8f5e9"
+                        stroke="#3a3a3a"
                         strokeWidth={isVisited ? "5" : "4"}
                         strokeLinecap="round"
                       />
                       <path
                         d={pathD}
                         fill="none"
-                        stroke={isVisited ? "#10b981" : "#48bb78"}
+                        stroke={isVisited ? "#10b981" : "#1f1f1f"}
                         strokeWidth={isVisited ? "3" : "2.5"}
                         strokeLinecap="round"
                         markerEnd={graphType === 'dirigido' ? "url(#arrowhead)" : ""}
@@ -1641,7 +1632,7 @@ function SobreGrafoSection({ onNavigate }) {
                           cy={labelY}
                           r="14"
                           fill="white"
-                          stroke={isVisited ? "#10b981" : "#48bb78"}
+                          stroke={isVisited ? "#10b981" : "#1f1f1f"}
                           strokeWidth={isVisited ? "3" : "2"}
                           style={{
                             transition: 'all 0.3s ease'
@@ -1655,7 +1646,7 @@ function SobreGrafoSection({ onNavigate }) {
                           textAnchor="middle"
                           fontSize="13"
                           fontWeight="700"
-                          fill={isVisited ? "#065f46" : "#2f855a"}
+                          fill={isVisited ? "#065f46" : "#1a1a1a"}
                           style={{
                             transition: 'all 0.3s ease'
                           }}

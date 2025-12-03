@@ -1109,6 +1109,39 @@
   gap: 16px;
 }
 
+.tree-stats {
+  display: flex;
+  gap: 24px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-radius: 8px;
+  border: 2px solid #bae6fd;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #0369a1;
+}
+
+.stat-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0c4a6e;
+  background: white;
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 2px solid #7dd3fc;
+  min-width: 40px;
+  text-align: center;
+}
+
 .tree-controls {
   display: flex;
   gap: 12px;
