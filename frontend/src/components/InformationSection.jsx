@@ -22,9 +22,15 @@ function InformationSection({ onNavigate }) {
             </div>
             <div className="info-card-content">
               <p>
-                Este es un simulador para el manejo, guardado, búsqueda de información en memoria 
-                tanto principal como secundaria. Con el fin de ilustrar el manejo académico de los 
-                conceptos de la asignatura de ciencias de la computación 2.
+                Este es un simulador integral para el manejo, guardado, búsqueda de información en memoria 
+                tanto principal como secundaria, incluyendo estructuras de datos avanzadas como grafos. 
+                Con el fin de ilustrar el manejo académico de los conceptos de la asignatura de ciencias 
+                de la computación 2.
+              </p>
+              <p>
+                El simulador abarca búsquedas internas (secuencial, binaria, hash), búsquedas en árboles 
+                (residuos, digitales, Trie, Huffman), búsquedas externas (índices, dinámicas, por bloques), 
+                y teoría de grafos (representaciones, operaciones, algoritmos de caminos mínimos).
               </p>
               <p>
                 Este simulador solo busca ejemplificar y no maneja registros completos como una base 
@@ -82,8 +88,16 @@ function InformationSection({ onNavigate }) {
                   <p>Node.js + Express</p>
                 </div>
                 <div className="tech-item">
+                  <h4>Búsquedas</h4>
+                  <p>Internas, Árboles, Externas</p>
+                </div>
+                <div className="tech-item">
+                  <h4>Grafos</h4>
+                  <p>Representación y Algoritmos</p>
+                </div>
+                <div className="tech-item">
                   <h4>Algoritmos</h4>
-                  <p>8 métodos de búsqueda</p>
+                  <p>20+ métodos implementados</p>
                 </div>
                 <div className="tech-item">
                   <h4>Año</h4>

@@ -202,6 +202,31 @@ cd frontend && npm run dev
 - **Morgan**: Logger HTTP
 - **Dotenv**: Variables de entorno
 
+## 💻 Ejecutables de Escritorio con Electron
+
+Este proyecto puede exportarse como aplicación de escritorio para Windows (.exe) y Linux (AppImage).
+
+### 🚀 Inicio Rápido Electron
+
+```bash
+# Probar con Electron
+npm run electron:start
+
+# Construir ejecutables
+npm run build:win      # Windows
+npm run build:linux    # Linux
+npm run build:all      # Ambas plataformas
+```
+
+### 📚 Documentación Completa
+
+- **[📍 Índice de Documentación](docs/electron/ELECTRON-INDEX.md)** - Punto de partida
+- **[⚡ Inicio Rápido](docs/electron/ELECTRON-QUICK-SUMMARY.md)** - Comandos esenciales
+- **[✅ Checklist](docs/electron/BUILD-CHECKLIST.md)** - Antes de construir
+- **[❓ FAQ](docs/electron/ELECTRON-FAQ.md)** - Preguntas frecuentes
+
+Los ejecutables se generan en `dist-electron/` con tamaño ~150MB e incluyen todo lo necesario (no requiere Node.js instalado).
+
 ## 🔧 Scripts Disponibles
 
 ```bash
@@ -211,6 +236,12 @@ npm run dev:backend  # Solo backend
 npm run dev:frontend # Solo frontend
 npm run install:all  # Instalar todas las dependencias
 npm run setup        # Ejecutar script de configuración
+
+# Electron
+npm run electron:start  # Modo desarrollo con Electron
+npm run build:win       # Construir ejecutable Windows (.exe)
+npm run build:linux     # Construir ejecutable Linux (AppImage)
+npm run build:all       # Construir ambos ejecutables
 
 # Backend
 npm run dev          # Desarrollo con nodemon

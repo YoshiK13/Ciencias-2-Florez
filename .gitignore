@@ -8,6 +8,15 @@ build/
 */dist/
 */build/
 
+# Electron build outputs
+dist-electron/
+out/
+*.AppImage
+*.exe
+*.dmg
+*.deb
+*.rpm
+
 # Environment variables
 .env
 .env.local
